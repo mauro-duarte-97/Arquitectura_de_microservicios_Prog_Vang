@@ -1,0 +1,18 @@
+services:
+
+  # interfaz_usuario:
+  #   build: ./Interfaz_usuario
+  #   ports:
+  #     - "3000:3000"
+
+  microservicio_gestion_persistencia:
+    build: ./Microservicio_gestion_persistencia
+    ports:
+      - "8080:8080"
+    depends_on:
+      - microservicio_inferencia_analisis
+
+  microservicio_inferencia_analisis:
+    build: ./Microservicio_inferencia_analisis
+    ports:
+      - "5000:5000"

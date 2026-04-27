@@ -2,15 +2,15 @@
 
 Proyecto Final de Programación de Vanguardia en el que trabajamos con el objetivo de  proporcionar una herramienta capaz de realizar análisis estáticos y lógicos de fragmentos de código en tiempo real, identificando vulnerabilidades de seguridad, errores de sintaxis y oportunidades de refactorización.
 
-
+Requisitos:
+- Docker
+- Docker Compose
 
 Instrucciones:
 
+- docker compose up --build
 
-
-
-
-Diferencia de un compilador tradicional, la plataforma podrá utilizar algún modelo de entre los modelos de lenguaje de gran escala (LLM) para ofrecer una explicación pedagógica sobre por qué el código es erróneo o ineficiente, fomentando el aprendizaje autónomo del alumno.
+A diferencia de un compilador tradicional, la plataforma podrá utilizar algún modelo de entre los modelos de lenguaje de gran escala (LLM) para ofrecer una explicación pedagógica sobre por qué el código es erróneo o ineficiente, fomentando el aprendizaje autónomo del alumno.
 
 
 
