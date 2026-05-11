@@ -1,0 +1,8 @@
+Comandos de lanzamiento:
+
+python:
+uvicorn app:app --reload --host 127.0.0.1 --port 5000
+
+Java:
+Pararse en D:\Github\Programacion_Vanguardia\TP_Arquitectura_de_Microservicios\Arquitectura_de_microservicios_Prog_Vang\Microservicio_gestion_persistencia
+mvn spring-boot:run

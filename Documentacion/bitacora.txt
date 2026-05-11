@@ -48,3 +48,48 @@ LECCIONES APRENDIDAS:
 - Uso de RestTemplate para llamadas HTTP en Spring
 - Validación de datos con Pydantic en FastAPI
 - Configuración de CORS para comunicación entre servicios
+
+Fecha: 11 de mayo de 2026
+
+AVANCES DEL DÍA:
+✅ Resueltos problemas críticos en microservicio Python:
+- Corregida versión de Ollama en requirements.txt (0.0.47 → 0.6.2)
+- Implementada verificación de sintaxis con ast.parse para detectar errores de sintaxis reales antes de análisis IA
+- Mejorado manejo de errores: ahora muestra errores específicos de Ollama en lugar de respuestas genéricas
+- Aumentado timeout de requests a 60 segundos para respuestas de IA
+
+✅ Sistema de análisis ahora funciona correctamente:
+- Detecta errores de sintaxis (SyntaxError) inmediatamente y los reporta como críticos
+- Para código válido, envía a Ollama para análisis profundo de calidad, lógica y mejores prácticas
+- Respuestas detalladas con issues, explicaciones y código refactorizado
+
+✅ Probado y validado:
+- Código con errores: detecta SyntaxError correctamente
+- Código válido: análisis con IA funciona (ej: sugerencias de mejora en prints, lógica, etc.)
+
+PROBLEMAS RESUELTOS:
+✅ Respuestas genéricas sobre prints cuando había errores de sintaxis
+✅ Fallos silenciosos de Ollama sin feedback útil
+✅ Detección pobre de errores de sintaxis por parte del modelo IA
+
+ESTADO ACTUAL:
+✅ Microservicio Python completamente funcional con análisis inteligente
+✅ Microservicio Java listo para integración
+🔄 Pendiente: Integración completa Java-Python
+🔄 Pendiente: Pruebas de comunicación entre servicios
+🔄 Pendiente: Dockerización y despliegue con docker-compose
+
+SIGUIENTES PASOS PROPUESTOS:
+1. Levantar servidor Java (Spring Boot) en puerto 8080
+2. Probar llamadas HTTP desde Java a Python usando RestTemplate
+3. Verificar flujo completo: Frontend → Java → Python → Respuesta
+4. Implementar manejo de errores en la comunicación entre servicios
+5. Agregar logging y monitoreo básico
+6. Documentar API completa y flujo de datos
+7. Considerar mejoras: soporte para más lenguajes, integración con base de datos, autenticación JWT completa
+
+LECCIONES APRENDIDAS HOY:
+- Los modelos de IA como Ollama son excelentes para análisis de calidad pero no para detección de sintaxis; usar herramientas nativas como ast.parse
+- Importancia de timeouts apropiados para requests a servicios de IA
+- Mejorar UX mostrando errores específicos en lugar de genéricos
+- Verificación de sintaxis antes de análisis profundo mejora eficiencia y precisión

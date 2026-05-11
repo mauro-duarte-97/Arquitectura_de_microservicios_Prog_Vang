@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Optional
-import requests
+try:
+    import requests # pyright: ignore[reportMissingModuleSource]
+except ImportError:
+    requests = None
 import json
 
 app = FastAPI()
@@ -25,12 +28,6 @@ class AnalyzeResponse(BaseModel):
     refactored_code: str
 
 
-# Configuración de Ollama
-OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "qwen2"
-OLLAMA_AVAILABLE = check_ollama_availability()
-
-
 def check_ollama_availability():
     """Verifica si Ollama está disponible"""
     try:
@@ -39,15 +36,39 @@ def check_ollama_availability():
     except:
         return False
 
+# Configuración de Ollama
+OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "qwen2"
+OLLAMA_AVAILABLE = check_ollama_availability()
+
+
+import ast
 
 def analyze_with_ollama(code: str, language: str, mode: str) -> dict:
     """Usa Ollama para analizar el código con IA"""
+    
+    # First, check for syntax errors
+    if language == "python":
+        try:
+            ast.parse(code)
+        except SyntaxError as e:
+            return {
+                "issues": [{"line": e.lineno or 1, "message": f"SyntaxError: {e.msg}", "severity": "critical"}],
+                "explanation": f"Hay un error de sintaxis en la línea {e.lineno or 1}: {e.msg}. Corrige este error antes de continuar.",
+                "refactored_code": code  # No refactorizar si hay error
+            }
+        except Exception as e:
+            return {
+                "issues": [{"line": 1, "message": f"Error parsing code: {str(e)}", "severity": "critical"}],
+                "explanation": f"Error al analizar el código: {str(e)}",
+                "refactored_code": code
+            }
+    
     prompt = f"""You are an expert code reviewer analyzing code for a student learning platform.
-Analyze the following {language} code and provide:
-1. Identify ALL syntax errors and logical issues
-2. List code quality issues (performance, security, best practices)
-3. Provide an explanation suitable for a student
-4. Suggest refactored code
+The code has been checked for syntax errors and is valid. Now provide:
+1. Identify logical issues and code quality problems (performance, security, best practices)
+2. Provide an explanation suitable for a student
+3. Suggest refactored code
 
 Code to analyze:
 ```{language}
@@ -59,7 +80,7 @@ Mode: {mode}
 Respond in JSON format:
 {{
   "issues": [
-    {{"line": 1, "message": "error description", "severity": "critical|warning|info"}}
+    {{"line": 1, "message": "error description", "severity": "warning|info"}}
   ],
   "explanation": "Clear explanation for the student",
   "refactored_code": "Improved version of the code"
@@ -73,7 +94,7 @@ Respond in JSON format:
             "format": "json"
         }
         
-        response = requests.post(OLLAMA_URL, json=payload, timeout=30)
+        response = requests.post(OLLAMA_URL, json=payload, timeout=60)
         response.raise_for_status()
         
         result = response.json()
@@ -84,7 +105,8 @@ Respond in JSON format:
         return analysis
     except Exception as ex:
         print(f"Ollama error: {ex}")
-        return None
+        # Return error info instead of None
+        return {"error": f"Error conectando con Ollama: {str(ex)}"}
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
@@ -96,6 +118,12 @@ def analyze(request: AnalyzeRequest):
         try:
             result = analyze_with_ollama(code, request.language, request.mode)
             if result:
+                if "error" in result:
+                    return AnalyzeResponse(
+                        issues=[Issue(line=0, message="Error en análisis IA", severity="critical")],
+                        explanation=result["error"],
+                        refactored_code=code
+                    )
                 # Valida que los issues sean válidos
                 issues = [Issue(**issue) for issue in result.get("issues", [])]
                 return AnalyzeResponse(
