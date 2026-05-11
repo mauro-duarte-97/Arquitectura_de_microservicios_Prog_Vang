@@ -1,21 +1,147 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import List, Optional
+import requests
+import json
 
 app = FastAPI()
 
-@app.post("/analyze")
-def analyze():
-    return {
-        "issues": [
-            {
-                "line": 10,
-                "message": "Variable no utilizada",
-                "severity": "warning"
-            }
-        ],
-        "explanation": "Este es un mock inicial",
-        "refactored_code": "print('Hola mundo')"
-    }
+
+class AnalyzeRequest(BaseModel):
+    code: str
+    language: Optional[str] = "python"
+    mode: Optional[str] = "Senior Dev"
+
+
+class Issue(BaseModel):
+    line: int
+    message: str
+    severity: str
+
+
+class AnalyzeResponse(BaseModel):
+    issues: List[Issue]
+    explanation: str
+    refactored_code: str
+
+
+# Configuración de Ollama
+OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "qwen2"
+OLLAMA_AVAILABLE = check_ollama_availability()
+
+
+def check_ollama_availability():
+    """Verifica si Ollama está disponible"""
+    try:
+        response = requests.get("http://localhost:11434/api/tags", timeout=2)
+        return response.status_code == 200
+    except:
+        return False
+
+
+def analyze_with_ollama(code: str, language: str, mode: str) -> dict:
+    """Usa Ollama para analizar el código con IA"""
+    prompt = f"""You are an expert code reviewer analyzing code for a student learning platform.
+Analyze the following {language} code and provide:
+1. Identify ALL syntax errors and logical issues
+2. List code quality issues (performance, security, best practices)
+3. Provide an explanation suitable for a student
+4. Suggest refactored code
+
+Code to analyze:
+```{language}
+{code}
+```
+
+Mode: {mode}
+
+Respond in JSON format:
+{{
+  "issues": [
+    {{"line": 1, "message": "error description", "severity": "critical|warning|info"}}
+  ],
+  "explanation": "Clear explanation for the student",
+  "refactored_code": "Improved version of the code"
+}}"""
+
+    try:
+        payload = {
+            "model": OLLAMA_MODEL,
+            "prompt": prompt,
+            "stream": False,
+            "format": "json"
+        }
+        
+        response = requests.post(OLLAMA_URL, json=payload, timeout=30)
+        response.raise_for_status()
+        
+        result = response.json()
+        response_text = result.get("response", "")
+        
+        # Parse JSON response
+        analysis = json.loads(response_text)
+        return analysis
+    except Exception as ex:
+        print(f"Ollama error: {ex}")
+        return None
+
+
+@app.post("/analyze", response_model=AnalyzeResponse)
+def analyze(request: AnalyzeRequest):
+    code = request.code
+    
+    # Intenta usar Ollama si está disponible
+    if OLLAMA_AVAILABLE:
+        try:
+            result = analyze_with_ollama(code, request.language, request.mode)
+            if result:
+                # Valida que los issues sean válidos
+                issues = [Issue(**issue) for issue in result.get("issues", [])]
+                return AnalyzeResponse(
+                    issues=issues if issues else [Issue(line=0, message="No issues found", severity="info")],
+                    explanation=result.get("explanation", "Analysis completed"),
+                    refactored_code=result.get("refactored_code", code)
+                )
+        except Exception as ex:
+            print(f"Error processing Ollama response: {ex}")
+    
+    # Fallback: análisis básico si Ollama no está disponible
+    issues = []
+    
+    if "TODO" in code:
+        issues.append(Issue(line=1, message="Contiene comentario TODO sin resolver", severity="warning"))
+
+    if "print(" in code and request.language == "python":
+        issues.append(Issue(line=1, message="Uso de print en código de producción", severity="info"))
+
+    if "println(" in code and request.language == "kotlin":
+        issues.append(Issue(line=1, message="Uso de println en código de producción", severity="info"))
+
+    if "System.out.println(" in code and request.language == "java":
+        issues.append(Issue(line=1, message="Uso de System.out.println en código de producción", severity="info"))
+
+    if not issues:
+        issues.append(Issue(line=0, message="No se detectaron problemas graves", severity="info"))
+
+    if request.language == "python":
+        refactored_code = code.replace("print(", "logger.info(")
+    elif request.language == "kotlin":
+        refactored_code = code.replace("println(", "logger.info(")
+    else:
+        refactored_code = code
+
+    return AnalyzeResponse(
+        issues=issues,
+        explanation=f"Análisis simulado en modo {request.mode} para lenguaje {request.language}. Nota: Ollama no disponible",
+        refactored_code=refactored_code
+    )
+
 
 @app.get("/test")
 def test():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "ollama_available": OLLAMA_AVAILABLE,
+        "model": OLLAMA_MODEL if OLLAMA_AVAILABLE else "none"
+    }

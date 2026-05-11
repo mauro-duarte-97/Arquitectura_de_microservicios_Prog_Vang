@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma de Auditoría de Código - Diagrama de Arquitectura</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4ebf3 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            font-weight: 300;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: #ecf0f1;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            color: #34495e;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            background: #d5dbdb;
+        }
+
+        .tab.active {
+            background: #3498db;
+            color: white;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .diagram-section {
+            display: none;
+            background: #fafbfc;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid #e1e8ed;
+        }
+
+        .diagram-section.active {
+            display: block;
+        }
+
+        .diagram-title {
+            font-size: 1.4em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .mermaid {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .legend {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+
+        .legend h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95em;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #95a5a6;
+            font-size: 0.9em;
+        }
+
+        .info-box {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Plataforma de Auditoría de Código</h1>
+            <p class="subtitle">Diagrama de Arquitectura Funcional - Sistema basado en Microservicios</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showDiagram('arquitectura', this)">Arquitectura por Capas</button>
+            <button class="tab" onclick="showDiagram('flujo', this)">Flujo Principal (Happy Path)</button>
+            <button class="tab" onclick="showDiagram('secuencia', this)">Diagrama de Secuencia</button>
+            <button class="tab" onclick="showDiagram('errores', this)">Manejo de Errores</button>
+        </div>
+
+        <!-- DIAGRAMA 1: ARQUITECTURA POR CAPAS -->
+        <div id="arquitectura" class="diagram-section active">
+            <h2 class="diagram-title">Vista de Arquitectura por Capas</h2>
+            <div class="info-box">
+                Visualización de los componentes agrupados por capas: <strong>Frontend</strong>, <strong>Backend (Orquestación)</strong> e <strong>IA (Inferencia)</strong>, mostrando responsabilidades y comunicación entre ellos.
+            </div>
+            <div class="mermaid">
+graph TB
+    User([👤 Usuario])
+
+    subgraph Frontend ["🖥️ CAPA FRONTEND - Interfaz de Usuario"]
+        UI[Aplicación Web<br/>React/Vue/Angular]
+        Editor[Editor de Código<br/>Syntax Highlighting]
+        Results[Visualizador de<br/>Resultados]
+        History[Historial de<br/>Auditorías]
+        UI --- Editor
+        UI --- Results
+        UI --- History
+    end
+
+    subgraph Backend ["⚙️ CAPA BACKEND - Microservicio de Gestión - Java/Spring Boot"]
+        API[API REST<br/>Spring Boot]
+        Auth[Módulo de<br/>Autenticación JWT]
+        Orch[Orquestador<br/>de Auditorías]
+        Persist[Capa de<br/>Persistencia JPA]
+        DB[(🗄️ Base de Datos<br/>Relacional<br/>PostgreSQL/MySQL)]
+        API --- Auth
+        API --- Orch
+        Orch --- Persist
+        Persist --- DB
+    end
+
+    subgraph IA ["🤖 CAPA IA - Microservicio de Inferencia - Python/FastAPI"]
+        InfAPI[API REST<br/>FastAPI]
+        Preproc[Preprocesador<br/>de Código]
+        LLM[Modelo LLM<br/>Análisis de Código]
+        PostProc[Estructurador<br/>de Resultados JSON]
+        InfAPI --> Preproc
+        Preproc --> LLM
+        LLM --> PostProc
+    end
+
+    User -->|HTTPS| UI
+    UI -->|"REST/JSON + JWT<br/>(síncrono)"| API
+    API -->|"Token válido"| UI
+    Orch -->|"HTTP POST<br/>Código fuente<br/>(síncrono)"| InfAPI
+    PostProc -->|"JSON: Vulnerabilidades<br/>+ Sugerencias<br/>+ Explicaciones"| Orch
+
+    classDef frontendStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#0d47a1
+    classDef backendStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#e65100
+    classDef iaStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c
+    classDef dbStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#1b5e20
+    classDef userStyle fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#880e4f
+
+    class UI,Editor,Results,History frontendStyle
+    class API,Auth,Orch,Persist backendStyle
+    class InfAPI,Preproc,LLM,PostProc iaStyle
+    class DB dbStyle
+    class User userStyle
+            </div>
+        </div>
+
+        <!-- DIAGRAMA 2: FLUJO PRINCIPAL (HAPPY PATH) -->
+        <div id="flujo" class="diagram-section">
+            <h2 class="diagram-title">Flujo Principal - Happy Path (Despliegue Docker)</h2>
+            <div class="info-box">
+                Camino exitoso de una auditoría, mostrando los componentes como <strong>contenedores Docker</strong> conectados en una red interna (docker-compose). Cada flecha representa una llamada HTTP/REST síncrona y está numerada según el orden del flujo.
+            </div>
+            <div class="mermaid">
+flowchart TB
+    User([👤 Usuario])
+
+    subgraph DockerNet ["🐳 Red Docker Interna - docker-compose"]
+        direction TB
+
+        subgraph C1 ["📦 Container: frontend"]
+            FE[Frontend Web<br/>React / Vue<br/>Editor + Visualizador]
+        end
+
+        subgraph C2 ["📦 Container: backend-java"]
+            BE[Microservicio de Gestión<br/>Spring Boot - API REST<br/>Auth JWT + Orquestador]
+        end
+
+        subgraph C3 ["📦 Container: postgres-db"]
+            DB[(Base de Datos<br/>PostgreSQL<br/>Usuarios + Auditorías)]
+        end
+
+        subgraph C4 ["📦 Container: inference-py"]
+            PY[Microservicio Inferencia<br/>Python - FastAPI<br/>Cliente del Motor IA]
+        end
+
+        subgraph C5 ["📦 Container: ollama-ai"]
+            AI[Motor de IA Local<br/>Ollama<br/>Modelo LLM]
+        end
+    end
+
+    User -->|"1 - HTTPS<br/>Ingresa código + JWT"| FE
+    FE -->|"2 - HTTP POST /api/audit<br/>Header: Bearer JWT<br/>Body: codigo fuente"| BE
+    BE -->|"3 - Valida JWT<br/>OK"| BE
+    BE -->|"4 - INSERT auditoria<br/>JDBC - status PENDING"| DB
+    BE -->|"5 - HTTP POST /analyze<br/>JSON: codigo + lenguaje"| PY
+    PY -->|"6 - HTTP POST<br/>Prompt al LLM"| AI
+    AI -->|"7 - Respuesta del modelo<br/>análisis crudo"| PY
+    PY -->|"8 - HTTP 200<br/>JSON estructurado:<br/>vulnerabilidades + sugerencias"| BE
+    BE -->|"9 - UPDATE auditoria<br/>resultado + status COMPLETED"| DB
+    BE -->|"10 - HTTP 200<br/>JSON con resultado final"| FE
+    FE -->|"11 - Renderiza<br/>Crítico / Advertencia / Sugerencia"| User
+
+    classDef userStyle fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#880e4f
+    classDef frontStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
+    classDef backStyle fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#e65100
+    classDef dbStyle fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px,color:#1b5e20
+    classDef pyStyle fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#4a148c
+    classDef aiStyle fill:#ede7f6,stroke:#4527a0,stroke-width:2px,color:#311b92
+
+    class User userStyle
+    class FE frontStyle
+    class BE backStyle
+    class DB dbStyle
+    class PY pyStyle
+    class AI aiStyle
+            </div>
+
+            <div style="margin-top: 25px; padding: 15px 20px; background: #f1f8e9; border-left: 4px solid #689f38; border-radius: 4px;">
+                <strong>📋 Responsabilidades por contenedor:</strong>
+                <ul style="margin-top: 10px; margin-left: 20px; line-height: 1.8;">
+                    <li><strong>frontend:</strong> Captura código, gestiona JWT, renderiza resultados clasificados.</li>
+                    <li><strong>backend-java:</strong> Autentica (JWT), orquesta el flujo, persiste en BD, llama al servicio Python.</li>
+                    <li><strong>postgres-db:</strong> Almacena usuarios y auditorías. <em>Solo accesible desde backend-java.</em></li>
+                    <li><strong>inference-py:</strong> Recibe código, construye prompts, invoca al LLM, estructura el JSON de salida.</li>
+                    <li><strong>ollama-ai:</strong> Motor LLM local. <em>Solo accesible desde inference-py.</em></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- DIAGRAMA 3: DIAGRAMA DE SECUENCIA -->
+        <div id="secuencia" class="diagram-section">
+            <h2 class="diagram-title">Diagrama de Secuencia - Interacciones HTTP/REST</h2>
+            <div class="info-box">
+                Secuencia temporal de las llamadas HTTP/REST entre los componentes, indicando claramente quién inicia cada interacción y los datos transportados.
+            </div>
+            <div class="mermaid">
+sequenceDiagram
+    actor U as 👤 Usuario
+    participant F as 🖥️ Frontend<br/>(Web App)
+    participant B as ⚙️ Backend Java<br/>(Spring Boot)
+    participant DB as 🗄️ Base de Datos<br/>(PostgreSQL)
+    participant I as 🤖 Microservicio IA<br/>(Python/FastAPI)
+
+    Note over U,I: 🔐 FASE 1: AUTENTICACIÓN
+    U->>F: Ingresa credenciales
+    F->>+B: POST /auth/login {user, password}
+    B->>DB: SELECT usuario WHERE email=?
+    DB-->>B: Datos del usuario
+    B->>B: Valida password (bcrypt)
+    B-->>-F: 200 OK {jwt_token, user_info}
+    F-->>U: Sesión iniciada
+
+    Note over U,I: 📝 FASE 2: ENVÍO DE CÓDIGO
+    U->>F: Ingresa código en editor
+    U->>F: Click en "Auditar"
+    F->>+B: POST /api/audit<br/>Header: Authorization: Bearer JWT<br/>Body: {codigo, lenguaje}
+    B->>B: Valida JWT
+    B->>DB: INSERT INTO auditorias (codigo, user_id, status='PENDING')
+    DB-->>B: id_auditoria
+
+    Note over U,I: 🤖 FASE 3: ANÁLISIS CON IA (Síncrono)
+    B->>+I: POST /analyze<br/>Body: {codigo, lenguaje, id_auditoria}
+    I->>I: Preprocesa el código
+    I->>I: Invoca modelo LLM
+    I->>I: Estructura respuesta JSON
+    I-->>-B: 200 OK<br/>{vulnerabilidades:[], sugerencias:[], explicaciones:[]}
+
+    Note over U,I: 💾 FASE 4: PERSISTENCIA Y RESPUESTA
+    B->>DB: UPDATE auditorias SET resultado=?, status='COMPLETED'
+    DB-->>B: OK
+    B-->>-F: 200 OK<br/>{id, vulnerabilidades, sugerencias, explicaciones}
+    F->>F: Renderiza resultados clasificados
+    F-->>U: Muestra: 🔴 Crítico / 🟡 Advertencia / 🔵 Sugerencia
+
+    Note over U,I: 📚 FASE 5: CONSULTA DE HISTORIAL
+    U->>F: Click en "Historial"
+    F->>+B: GET /api/audit/history<br/>Header: Authorization: Bearer JWT
+    B->>DB: SELECT * FROM auditorias WHERE user_id=?
+    DB-->>B: Lista de auditorías
+    B-->>-F: 200 OK [{auditoria1}, {auditoria2}, ...]
+    F-->>U: Muestra historial paginado
+            </div>
+        </div>
+
+        <!-- DIAGRAMA 4: MANEJO DE ERRORES -->
+        <div id="errores" class="diagram-section">
+            <h2 class="diagram-title">Manejo de Errores - Flujos Alternativos</h2>
+            <div class="info-box">
+                Diagrama enfocado <strong>únicamente en escenarios de error</strong>. Las flechas punteadas representan rutas alternativas (no felices). Cada error muestra cómo el backend lo gestiona y qué respuesta amigable recibe el frontend.
+            </div>
+            <div class="mermaid">
+flowchart LR
+    FE[🖥️ Frontend]
+    BE[⚙️ Backend Java<br/>Manejador de Errores]
+    DB[(🗄️ Base de Datos)]
+    PY[🐍 Microservicio Python]
+    AI[🤖 Motor IA - Ollama]
+
+    FE -.->|Request con JWT| BE
+
+    BE -.->|"❌ E1: JWT inválido<br/>o expirado"| E1[HTTP 401<br/>Unauthorized]
+    E1 -.->|"Mensaje:<br/>Sesión expirada,<br/>vuelva a iniciar sesión"| FE
+
+    BE -.->|"Persistir auditoría"| DB
+    DB -.->|"❌ E2: Fallo BD<br/>conexión / constraint"| E2[HTTP 500<br/>Internal Error]
+    E2 -.->|"Mensaje:<br/>Error interno,<br/>intente más tarde"| FE
+
+    BE -.->|"POST /analyze"| PY
+    PY -.->|"❌ E3: Timeout > 30s<br/>(Python no responde)"| E3[HTTP 504<br/>Gateway Timeout]
+    E3 -.->|"Reintento x3<br/>backoff exponencial"| BE
+    E3 -.->|"Mensaje:<br/>El análisis demoró<br/>demasiado, reintente"| FE
+
+    PY -.->|"Llamada al LLM"| AI
+    AI -.->|"❌ E4: Error en motor IA<br/>(modelo no responde)"| E4[HTTP 502<br/>Bad Gateway]
+    E4 -.->|"Marca auditoría<br/>status FAILED"| DB
+    E4 -.->|"Mensaje:<br/>Servicio de IA<br/>no disponible"| FE
+
+    classDef serviceStyle fill:#eceff1,stroke:#455a64,stroke-width:2px,color:#263238
+    classDef errorStyle fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#b71c1c
+    classDef dbStyle fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
+
+    class FE,BE,PY,AI serviceStyle
+    class E1,E2,E3,E4 errorStyle
+    class DB dbStyle
+
+    linkStyle default stroke:#c62828,stroke-width:2px,stroke-dasharray:5 5
+            </div>
+
+            <div style="margin-top: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+                <div style="padding: 15px; background: #ffebee; border-left: 4px solid #c62828; border-radius: 4px;">
+                    <strong>❌ E1 - JWT inválido</strong><br/>
+                    <em>Backend Java rechaza la request en el filtro de seguridad.</em><br/>
+                    <strong>Respuesta:</strong> 401 + redirección a login.
+                </div>
+                <div style="padding: 15px; background: #ffebee; border-left: 4px solid #c62828; border-radius: 4px;">
+                    <strong>❌ E2 - Fallo de persistencia</strong><br/>
+                    <em>BD no disponible o violación de constraint.</em><br/>
+                    <strong>Respuesta:</strong> 500 + mensaje genérico al usuario.
+                </div>
+                <div style="padding: 15px; background: #ffebee; border-left: 4px solid #c62828; border-radius: 4px;">
+                    <strong>❌ E3 - Timeout Python</strong><br/>
+                    <em>Microservicio de inferencia no responde a tiempo.</em><br/>
+                    <strong>Respuesta:</strong> 504 + reintento (3 veces) + mensaje de demora.
+                </div>
+                <div style="padding: 15px; background: #ffebee; border-left: 4px solid #c62828; border-radius: 4px;">
+                    <strong>❌ E4 - Error motor IA</strong><br/>
+                    <em>Ollama caído o el modelo falla.</em><br/>
+                    <strong>Respuesta:</strong> 502 + auditoría marcada FAILED en BD.
+                </div>
+            </div>
+        </div>
+
+        <!-- LEYENDA -->
+        <div class="legend">
+            <h3>📋 Leyenda de Componentes</h3>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e3f2fd; border: 2px solid #1976d2;"></div>
+                    <span><strong>Frontend:</strong> Interfaz de Usuario</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fff3e0; border: 2px solid #f57c00;"></div>
+                    <span><strong>Backend Java:</strong> Spring Boot - Orquestador</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f3e5f5; border: 2px solid #7b1fa2;"></div>
+                    <span><strong>IA Python:</strong> FastAPI - Inferencia LLM</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e8f5e9; border: 3px solid #388e3c;"></div>
+                    <span><strong>Base de Datos:</strong> PostgreSQL/MySQL</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fce4ec; border: 2px solid #c2185b;"></div>
+                    <span><strong>Usuario:</strong> Actor externo</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffcdd2; border: 2px solid #c62828;"></div>
+                    <span><strong>Error:</strong> Casos excepcionales</span>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 25px;">🔄 Tipos de Comunicación</h3>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <span><strong>━━▶</strong> Comunicación síncrona HTTP/REST (JSON)</span>
+                </div>
+                <div class="legend-item">
+                    <span><strong>🔐 JWT:</strong> Autenticación por token en cada request</span>
+                </div>
+                <div class="legend-item">
+                    <span><strong>📥 Datos:</strong> Código fuente, JSON estructurado</span>
+                </div>
+                <div class="legend-item">
+                    <span><strong>⏱️ Timeout:</strong> 30s para llamadas al servicio de IA</span>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><strong>Plataforma de Auditoría de Código</strong> | Trabajo Práctico - Programación de Vanguardia 2026 1C</p>
+            <p>Arquitectura de microservicios: Frontend + Backend Java (Spring Boot) + Microservicio IA (Python/FastAPI)</p>
+        </footer>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            sequence: {
+                useMaxWidth: true,
+                showSequenceNumbers: true,
+                actorMargin: 80,
+                messageMargin: 40
+            },
+            themeVariables: {
+                fontFamily: 'Segoe UI, Tahoma, sans-serif',
+                fontSize: '14px'
+            }
+        });
+
+        function showDiagram(id, btn) {
+            document.querySelectorAll('.diagram-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active');
+        }
+    </script>
+</body>
+</html>

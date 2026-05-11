@@ -1,0 +1,50 @@
+BITÁCORA DE SESIÓN - Arquitectura de Microservicios
+Fecha: 10 de mayo de 2026
+
+OBJETIVOS PRINCIPALES:
+- Construir sistema de auditoría de código con microservicios Java y Python
+- Enfoque didáctico para aprender interacción frontend-Java-Python
+- Comparar versión simple vs versión profesional (Backend-java)
+- Enfoque híbrido: comenzar con versión simple, luego agregar complejidad
+
+MICROSERVICIO JAVA (Spring Boot 3.2.5):
+✅ Implementado core básico:
+- AnalyzeController.java: Endpoint REST /api/v1/analyze
+- AnalyzeService.java: Lógica de negocio, validación JWT básica, llamadas HTTP a Python
+- DTOs: AnalyzeRequest, AnalyzeResponse, IssueDto
+- Configuración Maven con dependencias necesarias
+
+MICROSERVICIO PYTHON (FastAPI):
+✅ Implementado API completa:
+- app.py con Pydantic models (AnalyzeRequest/Response/Issue)
+- Endpoint POST /analyze con lógica de análisis simulada
+- Detección de TODO y print() statements
+- requirements.txt con dependencias: fastapi, uvicorn, pydantic
+- Dockerfile actualizado
+
+PROBLEMAS RESUELTOS:
+✅ Instalación de dependencias Python en entorno virtual
+✅ Política de ejecución PowerShell bloqueando scripts
+✅ Configuración correcta de host (127.0.0.1 vs 0.0.0.0)
+✅ Importación correcta del módulo app.py
+
+ESTADO ACTUAL:
+✅ Servidor Python corriendo en http://127.0.0.1:8000
+✅ Código Java compila correctamente
+🔄 Pendiente: Probar integración completa Java-Python
+🔄 Pendiente: Levantar servidor Java y probar flujo completo
+🔄 Pendiente: Agregar funcionalidades del Backend-java profesional
+
+SIGUIENTES PASOS PROPUESTOS:
+1. Probar endpoint Python con curl/Invoke-WebRequest
+2. Levantar servidor Java en puerto 8080
+3. Probar llamada desde Java a Python
+4. Implementar frontend básico para probar flujo completo
+5. Comparar e integrar elementos del Backend-java (JPA, RabbitMQ, PostgreSQL)
+
+LECCIONES APRENDIDAS:
+- Importancia de entornos virtuales en Python
+- Diferencias entre PowerShell y CMD en Windows
+- Uso de RestTemplate para llamadas HTTP en Spring
+- Validación de datos con Pydantic en FastAPI
+- Configuración de CORS para comunicación entre servicios
