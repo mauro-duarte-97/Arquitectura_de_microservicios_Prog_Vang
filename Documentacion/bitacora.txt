@@ -92,4 +92,237 @@ LECCIONES APRENDIDAS HOY:
 - Los modelos de IA como Ollama son excelentes para análisis de calidad pero no para detección de sintaxis; usar herramientas nativas como ast.parse
 - Importancia de timeouts apropiados para requests a servicios de IA
 - Mejorar UX mostrando errores específicos en lugar de genéricos
+<<<<<<< Updated upstream
 - Verificación de sintaxis antes de análisis profundo mejora eficiencia y precisión
+=======
+- Verificación de sintaxis antes de análisis profundo mejora eficiencia y precisión
+
+================================================================
+Sesión 11 de mayo de 2026 (tarde) - Persistencia + Seguridad
+================================================================
+
+OBJETIVO:
+Integrar PostgreSQL al microservicio Java para persistir el historial
+de análisis y agregar autenticación de usuarios con JWT (registro y
+login), preparando el camino para el frontend.
+
+DECISIONES DE DISEÑO:
+- PostgreSQL gestionado vía Docker (servicio en docker-compose.yml).
+- Migraciones versionadas con Flyway (V1__init_schema.sql).
+- ddl-auto = validate (Hibernate solo valida, Flyway crea el esquema).
+- Estructura de paquetes plana en com.tp.gestion (menos refactor).
+- Java actualizado de 17 a 21 LTS (Temurin) en pom.xml y Dockerfile.
+- Spring Security 6.x + filtro JWT propio con jjwt 0.12.6.
+- BCryptPasswordEncoder para hashing de contraseñas.
+- Historial guardado como entidad JPA AnalysisHistory; el response del
+  servicio Python se persiste como TEXT JSON (response_json).
+- CORS permisivo en desarrollo para los orígenes del frontend (3000, 5173).
+
+ESQUEMA DE BASE DE DATOS:
+- users(id UUID PK, email UNIQUE, username, password_hash, role, created_at)
+- analysis_history(id UUID PK, user_id FK -> users.id, language, mode,
+                   code TEXT, response_json TEXT, created_at)
+- Índices: idx_users_email, idx_history_user_created.
+
+NUEVAS DEPENDENCIAS (pom.xml):
+- spring-boot-starter-data-jpa
+- spring-boot-starter-security
+- spring-boot-starter-validation
+- postgresql (driver)
+- flyway-core + flyway-database-postgresql
+- jjwt-api / jjwt-impl / jjwt-jackson (0.12.6)
+- spring-security-test (scope test)
+
+ARCHIVOS NUEVOS:
+- src/main/resources/db/migration/V1__init_schema.sql
+- com.tp.gestion.Role (enum USER/ADMIN)
+- com.tp.gestion.User (entity + UserDetails)
+- com.tp.gestion.UserRepository
+- com.tp.gestion.AnalysisHistory (entity)
+- com.tp.gestion.AnalysisHistoryRepository
+- com.tp.gestion.AnalysisHistoryResponse (DTO)
+- com.tp.gestion.JwtService
+- com.tp.gestion.JwtAuthenticationFilter
+- com.tp.gestion.CustomUserDetailsService
+- com.tp.gestion.SecurityConfig
+- com.tp.gestion.AuthService
+- com.tp.gestion.AuthController
+- com.tp.gestion.HistoryService
+- com.tp.gestion.HistoryController
+- com.tp.gestion.RegisterRequest / LoginRequest / AuthResponse / UserResponse
+
+REFACTORS:
+- AnalyzeService: elimina lista en memoria; ahora persiste cada análisis
+  asociado al usuario autenticado y borra el check artesanal de "Bearer valid-token"
+  (lo reemplaza el JwtAuthenticationFilter global).
+- AnalyzeController: recibe @AuthenticationPrincipal User en lugar de
+  manejar manualmente el header Authorization.
+- AnalyzeRequest: agrega @NotBlank en code.
+- application.properties: configuración completa de datasource, JPA,
+  Flyway, JWT y CORS, todo override-able por variables de entorno.
+- docker-compose.yml: agrega servicio postgres:16-alpine con volumen y
+  healthcheck; el servicio Java espera con depends_on -> service_healthy.
+- Dockerfile: actualiza imagen base a temurin 21.
+- Eliminado AnalyzeHistoryEntry.java (POJO obsoleto).
+
+ENDPOINTS RESULTANTES (http://localhost:8080):
+Públicos:
+  GET  /test
+  GET  /api/v1/health
+  POST /api/v1/auth/register
+  POST /api/v1/auth/login
+Protegidos (JWT obligatorio):
+  GET  /api/v1/auth/me
+  POST /api/v1/analyze
+  GET  /api/v1/history
+  GET  /api/v1/history/{id}
+
+SIGUIENTES PASOS:
+1. Probar el flujo completo en Postman: register -> login -> analyze -> history.
+2. Probar errores: registro duplicado (409), login incorrecto (401),
+   analyze sin token (401), token inválido (401).
+3. Verificar que Flyway aplica V1__init_schema.sql en el primer arranque.
+4. Empezar el frontend (puede ser React/Vite en el directorio Interfaz_usuario).
+5. Considerar refresh tokens si la sesión de 60 min no alcanza.
+
+================================================================
+Sesión 12 de mayo de 2026 - Dockerización end-to-end y pruebas
+================================================================
+
+OBJETIVO:
+Levantar TODO el stack con un único `docker compose up --build` y
+validar el flujo completo (register -> login -> analyze -> history)
+desde Postman, sin depender de procesos Java/Python locales.
+
+PROBLEMAS DETECTADOS Y RESUELTOS:
+
+1) Puerto del microservicio Python mal configurado en el Dockerfile.
+   - El Dockerfile arrancaba uvicorn en el puerto 8000.
+   - docker-compose.yml mapea 5000:5000 y Java llama a
+     http://microservicio_inferencia_analisis:5000.
+   - Resultado: Java devolvía 503 Service Unavailable en /analyze.
+   - Fix: Microservicio_inferencia_analisis/Dockerfile -> port 5000
+     y se agregó EXPOSE 5000.
+
+2) Ollama inalcanzable desde dentro del contenedor Python.
+   - En app.py la URL estaba hardcodeada como http://localhost:11434,
+     que dentro del contenedor apunta al propio contenedor, no al host.
+   - Fix en app.py: lectura de OLLAMA_BASE_URL y OLLAMA_MODEL desde
+     variables de entorno (default localhost para dev nativo).
+   - Fix en docker-compose.yml: se pasa
+       OLLAMA_BASE_URL=http://host.docker.internal:11434
+     y se agrega extra_hosts: "host.docker.internal:host-gateway"
+     para compatibilidad con Linux (en Windows/Mac Docker Desktop ya lo provee).
+
+3) OLLAMA_AVAILABLE evaluado una sola vez al startup.
+   - Si Ollama no estaba arriba cuando arrancaba el contenedor Python,
+     quedaba "no disponible" para siempre (aunque después se prendiera).
+   - Fix: check_ollama_availability() ahora se llama por request, y
+     /test la recomputa también.
+
+ARCHIVOS NUEVOS:
+- Microservicio_inferencia_analisis/.dockerignore (excluye venv/,
+  __pycache__/, *.pyc, etc.; reduce el tamaño de la imagen y evita
+  copiar bytecode incompatible de Python 3.13/3.14 dentro de la
+  imagen de Python 3.10).
+- Microservicio_gestion_persistencia/.dockerignore (excluye target/,
+  .git/, .idea/; acelera el build context que Maven recibe).
+
+ARCHIVOS MODIFICADOS:
+- Microservicio_inferencia_analisis/Dockerfile (puerto 5000).
+- Microservicio_inferencia_analisis/app.py (OLLAMA_BASE_URL por env,
+  chequeo de disponibilidad por request, /test devuelve también la
+  URL configurada).
+- docker-compose.yml (env vars de Ollama + extra_hosts en el servicio
+  Python).
+
+VALIDACIONES HECHAS:
+
+- `docker compose config --quiet` -> compose sintácticamente válido.
+- `docker compose up --build` levanta los 3 servicios sin error:
+    * postgres -> Healthy, ready to accept connections en 5432.
+    * Flyway aplica V1__init_schema correctamente al primer arranque.
+    * microservicio_gestion_persistencia -> Tomcat started on 8080.
+    * microservicio_inferencia_analisis -> Uvicorn on 0.0.0.0:5000.
+- GET http://localhost:8080/test  -> 200 "Java OK".
+- GET http://localhost:5000/test  -> 200 con JSON:
+    {"status":"ok", "ollama_available":false,
+     "ollama_base_url":"http://host.docker.internal:11434",
+     "model":"none"}
+  Confirma que la URL hacia el host está bien configurada;
+  ollama_available=false porque todavía no se levantó Ollama
+  en el host (probaremos el camino con IA en la próxima sesión).
+
+PRUEBAS DE FLUJO COMPLETO EN POSTMAN:
+- POST /api/v1/auth/register -> 201 con accessToken + user.
+- POST /api/v1/analyze sin Authorization -> 403 Forbidden
+  (comportamiento esperado: la ruta exige JWT).
+- POST /api/v1/analyze con Bearer Token -> 200 con el análisis
+  simulado (fallback) porque Ollama no está activo:
+    {"issues":[{"line":0,"message":"No se detectaron problemas graves",
+                 "severity":"info"}],
+     "explanation":"Análisis simulado en modo senior-dev para
+                    lenguaje python. Nota: Ollama no disponible",
+     "refactoredCode":null}
+- Persistencia verificada: cada análisis queda guardado en la tabla
+  analysis_history de Postgres (consultable vía
+  `docker compose exec postgres psql -U auditoria -d auditoria`
+  o vía GET /api/v1/history con el mismo token).
+
+CONCEPTOS REFORZADOS DE JWT:
+- Duración del token: 60 minutos (app.jwt.expiration-minutes=60,
+  override-able por JWT_EXPIRATION_MINUTES).
+- La respuesta de /register y /login incluye "expiresInMinutes".
+- Códigos de estado a esperar:
+    * 403 -> no se envió el header Authorization.
+    * 401 -> token vencido, mal formado o usuario inexistente.
+- Truco: GET /api/v1/auth/me como "ping" barato para chequear si el
+  token sigue vivo.
+- El mismo token sirve para GET y POST de cualquier endpoint
+  protegido; no hay tokens diferentes por método HTTP.
+- Tip de Postman para no andar copiando el token a mano:
+    pestaña Scripts -> Post-response en /login:
+        const json = pm.response.json();
+        pm.collectionVariables.set("token", json.accessToken);
+    y en el resto de las requests usar Bearer Token = {{token}}.
+
+LECCIONES APRENDIDAS HOY:
+- "localhost" dentro de un contenedor es el propio contenedor; para
+  hablar con servicios del host se usa host.docker.internal (Windows/Mac)
+  o el truco extra_hosts host-gateway (Linux).
+- Las decisiones de puerto deben quedar consistentes entre Dockerfile
+  (EXPOSE/CMD), docker-compose.yml (ports) y la URL que usa el cliente
+  (Java apuntando a Python).
+- Para evitar tokens duplicados o expiraciones inesperadas conviene
+  centralizar la captura del token en un script post-response de Postman.
+- El volumen `postgres_data` mantiene los datos entre reinicios; solo
+  `docker compose down -v` los borra.
+
+SIGUIENTES PASOS:
+1. Probar el camino con IA real:
+   - Instalar/iniciar Ollama en el host (`ollama serve`).
+   - `ollama pull qwen2` (o el modelo que se prefiera).
+   - Verificar que GET /test del microservicio Python devuelve
+     "ollama_available": true.
+   - Re-tirar POST /api/v1/analyze con un caso pedagógico
+     (ej.: println('Hola Mundo') con language=python) y validar que
+     la explicación detecta que println no pertenece a Python.
+2. Documentar la guía de despliegue final con docker-compose en el
+   README/PDF del entregable.
+3. Empezar el frontend en Interfaz_usuario:
+   - React + Vite, editor con resaltado (Monaco o CodeMirror).
+   - Vista de login/register, vista de análisis, vista de historial.
+   - CORS ya está habilitado para http://localhost:3000 y 5173.
+4. Capturar la API en Swagger UI (http://localhost:8080/swagger-ui.html)
+   o exportar una colección de Postman para anexar al informe.
+5. Endurecer la respuesta del fallback:
+   - Devolver refactoredCode con el código original en lugar de null
+     cuando no haya nada para refactorizar (mejor DX para el frontend).
+6. Considerar healthcheck propio para el servicio Python en
+   docker-compose.yml y cambiar el depends_on de Java a
+   condition: service_healthy.
+7. Probar con código en otros lenguajes (Java, Kotlin) para verificar
+   los caminos del fallback y de Ollama.
+8. Refresh tokens / sesiones largas (opcional, evaluar si vale la pena
+   para el alcance del TP).
+>>>>>>> Stashed changes

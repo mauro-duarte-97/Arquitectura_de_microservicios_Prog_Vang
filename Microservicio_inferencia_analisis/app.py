@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Optional
@@ -28,12 +29,27 @@ class AnalyzeResponse(BaseModel):
     refactored_code: str
 
 
+<<<<<<< Updated upstream
 def check_ollama_availability():
     """Verifica si Ollama está disponible"""
+=======
+# Configuración de Ollama (override-able por variables de entorno)
+# En Docker hay que apuntar al host: OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_URL = f"{OLLAMA_BASE_URL}/api/generate"
+OLLAMA_TAGS_URL = f"{OLLAMA_BASE_URL}/api/tags"
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2")
+
+
+def check_ollama_availability() -> bool:
+    """Chequea si Ollama responde. Se llama por request para soportar arranques en cualquier orden."""
+    if requests is None:
+        return False
+>>>>>>> Stashed changes
     try:
-        response = requests.get("http://localhost:11434/api/tags", timeout=2)
+        response = requests.get(OLLAMA_TAGS_URL, timeout=2)
         return response.status_code == 200
-    except:
+    except Exception:
         return False
 
 # Configuración de Ollama
@@ -41,6 +57,8 @@ OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = "qwen2"
 OLLAMA_AVAILABLE = check_ollama_availability()
 
+
+import ast
 
 import ast
 
@@ -112,9 +130,9 @@ Respond in JSON format:
 @app.post("/analyze", response_model=AnalyzeResponse)
 def analyze(request: AnalyzeRequest):
     code = request.code
-    
-    # Intenta usar Ollama si está disponible
-    if OLLAMA_AVAILABLE:
+
+    # Intenta usar Ollama si está disponible (se re-chequea por request)
+    if check_ollama_availability():
         try:
             result = analyze_with_ollama(code, request.language, request.mode)
             if result:
@@ -168,8 +186,10 @@ def analyze(request: AnalyzeRequest):
 
 @app.get("/test")
 def test():
+    available = check_ollama_availability()
     return {
         "status": "ok",
-        "ollama_available": OLLAMA_AVAILABLE,
-        "model": OLLAMA_MODEL if OLLAMA_AVAILABLE else "none"
+        "ollama_available": available,
+        "ollama_base_url": OLLAMA_BASE_URL,
+        "model": OLLAMA_MODEL if available else "none"
     }

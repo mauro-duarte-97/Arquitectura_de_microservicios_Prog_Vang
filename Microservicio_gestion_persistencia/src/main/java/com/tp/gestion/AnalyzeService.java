@@ -1,35 +1,42 @@
 package com.tp.gestion;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 public class AnalyzeService {
 
     private final RestTemplate restTemplate;
     private final String pythonServiceBaseUrl;
-    private final List<AnalyzeHistoryEntry> history = Collections.synchronizedList(new ArrayList<>());
+    private final AnalysisHistoryRepository historyRepository;
+    private final ObjectMapper objectMapper;
 
     public AnalyzeService(RestTemplate restTemplate,
-                          @Value("${python.service.base-url:http://localhost:8000}") String pythonServiceBaseUrl) {
+                          @Value("${python.service.base-url:http://localhost:5000}") String pythonServiceBaseUrl,
+                          AnalysisHistoryRepository historyRepository,
+                          ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.pythonServiceBaseUrl = pythonServiceBaseUrl;
+        this.historyRepository = historyRepository;
+        this.objectMapper = objectMapper;
     }
 
-    public AnalyzeResponse analyze(String authorization, AnalyzeRequest request) {
-        validateAuthorization(authorization);
+    @Transactional
+    public AnalyzeResponse analyze(User user, AnalyzeRequest request) {
         if (request == null || request.getCode() == null || request.getCode().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El campo code es obligatorio");
         }
@@ -41,31 +48,31 @@ public class AnalyzeService {
             request.setMode("Senior Dev");
         }
 
-        AnalyzeHistoryEntry entry = new AnalyzeHistoryEntry(request);
-        history.add(entry);
-
         AnalyzeResponse response = callPythonAnalyzer(request);
-        entry.setResponse(response);
-
+        persistHistory(user, request, response);
         return response;
     }
 
-    public List<AnalyzeHistoryEntry> getHistory() {
-        return new ArrayList<>(history);
-    }
+    private void persistHistory(User user, AnalyzeRequest request, AnalyzeResponse response) {
+        String responseJson;
+        try {
+            responseJson = objectMapper.writeValueAsString(response);
+        } catch (JsonProcessingException ex) {
+            // Si fallara la serializaci\u00f3n no queremos romper la respuesta al usuario;
+            // dejamos null y registramos por logs (omitidos para mantener el c\u00f3digo simple).
+            responseJson = null;
+        }
 
-    private void validateAuthorization(String authorization) {
-        // En desarrollo, permitir sin token. En producción, validar.
-        if (authorization == null) {
-            return; // Permitir en desarrollo
-        }
-        if (!authorization.startsWith("Bearer ")) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authorization header invalid format");
-        }
-        String token = authorization.substring(7);
-        if (!"valid-token".equals(token)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token inválido");
-        }
+        AnalysisHistory entry = new AnalysisHistory(
+                UUID.randomUUID(),
+                user,
+                request.getLanguage(),
+                request.getMode(),
+                request.getCode(),
+                responseJson,
+                LocalDateTime.now()
+        );
+        historyRepository.save(entry);
     }
 
     private AnalyzeResponse callPythonAnalyzer(AnalyzeRequest request) {
