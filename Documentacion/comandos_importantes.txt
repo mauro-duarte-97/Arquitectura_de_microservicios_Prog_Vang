@@ -1,0 +1,113 @@
+================================================================
+Comandos de lanzamiento - Plataforma de Auditoria de Codigo
+================================================================
+
+# ----------------------------------------------------------------
+# 1) Base de datos PostgreSQL (Docker)
+# ----------------------------------------------------------------
+# Levanta SOLO Postgres (suficiente para correr Java en local nativo):
+docker compose up -d postgres
+
+# Ver logs en vivo:
+docker compose logs -f postgres
+
+# Apagar:
+docker compose down
+
+# Resetear la DB (BORRA los datos):
+docker compose down -v
+
+
+# ----------------------------------------------------------------
+# 2) Microservicio Python (FastAPI + uvicorn)
+# ----------------------------------------------------------------
+# Activar el entorno virtual (Microservicio_inferencia_analisis\venv)
+# y, parado en Microservicio_inferencia_analisis, ejecutar:
+uvicorn app:app --reload --host 127.0.0.1 --port 5000
+
+
+# ----------------------------------------------------------------
+# 3) Microservicio Java (Spring Boot 3.2.5 + Java 21)
+# ----------------------------------------------------------------
+# Parado en Microservicio_gestion_persistencia:
+.\mvnw.cmd spring-boot:run
+
+# Otros comandos utiles del wrapper:
+.\mvnw.cmd clean package        # compilar y empaquetar el .jar
+.\mvnw.cmd test                 # correr tests
+.\mvnw.cmd dependency:tree      # ver el arbol de dependencias
+
+
+# ----------------------------------------------------------------
+# 4) Variables de entorno (opcionales; tienen defaults en dev)
+# ----------------------------------------------------------------
+# POSTGRES_HOST          (default: localhost)
+# POSTGRES_PORT          (default: 5432)
+# POSTGRES_DB            (default: auditoria)
+# POSTGRES_USER          (default: auditoria)
+# POSTGRES_PASSWORD      (default: auditoria)
+# JWT_SECRET             (default solo para DEV, NO usar en produccion)
+# JWT_EXPIRATION_MINUTES (default: 60)
+# PYTHON_SERVICE_URL     (default: http://localhost:5000)
+
+
+# ----------------------------------------------------------------
+# 5) Levantar TODO con docker-compose (opcional)
+# ----------------------------------------------------------------
+# Construye y levanta Postgres + Java + Python juntos:
+docker compose up --build
+
+# Solo si queres reconstruir las imagenes despues de cambios:
+docker compose build
+
+
+# ----------------------------------------------------------------
+# 6) Verificacion rapida (PowerShell)
+# ----------------------------------------------------------------
+# Ver puertos en escucha:
+Get-NetTCPConnection -State Listen -LocalPort 5000,5432,8080,11434 | Format-Table -AutoSize
+
+
+# ================================================================
+# Endpoints del microservicio Java (http://localhost:8080)
+# ================================================================
+#
+# Publicos (no requieren JWT):
+#   GET  /test
+#   GET  /api/v1/health
+#   POST /api/v1/auth/register     body: { email, username, password }
+#   POST /api/v1/auth/login        body: { email, password }
+#
+# Protegidos (requieren header Authorization: Bearer <token>):
+#   GET  /api/v1/auth/me
+#   POST /api/v1/analyze           body: { code, language?, mode? }
+#   GET  /api/v1/history           query: ?page=0&size=20
+#   GET  /api/v1/history/{id}
+#
+# Swagger UI:
+#   http://localhost:8080/swagger-ui.html
+
+
+# ================================================================
+# Flujo de prueba en Postman
+# ================================================================
+# 1) POST /api/v1/auth/register
+#    {
+#      "email": "test@example.com",
+#      "username": "Test User",
+#      "password": "password123"
+#    }
+#    -> devuelve { accessToken, ... }
+#
+# 2) Copiar accessToken y pegarlo en la pestaña Authorization de Postman:
+#    Type: Bearer Token
+#    Token: <accessToken>
+#
+# 3) POST /api/v1/analyze
+#    {
+#      "code": "print('hola')",
+#      "language": "python",
+#      "mode": "Senior Dev"
+#    }
+#
+# 4) GET /api/v1/history  -> ves el analisis recien guardado

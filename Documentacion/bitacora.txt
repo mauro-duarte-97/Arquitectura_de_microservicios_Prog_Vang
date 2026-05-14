@@ -48,3 +48,600 @@ LECCIONES APRENDIDAS:
 - Uso de RestTemplate para llamadas HTTP en Spring
 - Validación de datos con Pydantic en FastAPI
 - Configuración de CORS para comunicación entre servicios
+
+Fecha: 11 de mayo de 2026
+
+AVANCES DEL DÍA:
+✅ Resueltos problemas críticos en microservicio Python:
+- Corregida versión de Ollama en requirements.txt (0.0.47 → 0.6.2)
+- Implementada verificación de sintaxis con ast.parse para detectar errores de sintaxis reales antes de análisis IA
+- Mejorado manejo de errores: ahora muestra errores específicos de Ollama en lugar de respuestas genéricas
+- Aumentado timeout de requests a 60 segundos para respuestas de IA
+
+✅ Sistema de análisis ahora funciona correctamente:
+- Detecta errores de sintaxis (SyntaxError) inmediatamente y los reporta como críticos
+- Para código válido, envía a Ollama para análisis profundo de calidad, lógica y mejores prácticas
+- Respuestas detalladas con issues, explicaciones y código refactorizado
+
+✅ Probado y validado:
+- Código con errores: detecta SyntaxError correctamente
+- Código válido: análisis con IA funciona (ej: sugerencias de mejora en prints, lógica, etc.)
+
+PROBLEMAS RESUELTOS:
+✅ Respuestas genéricas sobre prints cuando había errores de sintaxis
+✅ Fallos silenciosos de Ollama sin feedback útil
+✅ Detección pobre de errores de sintaxis por parte del modelo IA
+
+ESTADO ACTUAL:
+✅ Microservicio Python completamente funcional con análisis inteligente
+✅ Microservicio Java listo para integración
+🔄 Pendiente: Integración completa Java-Python
+🔄 Pendiente: Pruebas de comunicación entre servicios
+🔄 Pendiente: Dockerización y despliegue con docker-compose
+
+SIGUIENTES PASOS PROPUESTOS:
+1. Levantar servidor Java (Spring Boot) en puerto 8080
+2. Probar llamadas HTTP desde Java a Python usando RestTemplate
+3. Verificar flujo completo: Frontend → Java → Python → Respuesta
+4. Implementar manejo de errores en la comunicación entre servicios
+5. Agregar logging y monitoreo básico
+6. Documentar API completa y flujo de datos
+7. Considerar mejoras: soporte para más lenguajes, integración con base de datos, autenticación JWT completa
+
+LECCIONES APRENDIDAS HOY:
+- Los modelos de IA como Ollama son excelentes para análisis de calidad pero no para detección de sintaxis; usar herramientas nativas como ast.parse
+- Importancia de timeouts apropiados para requests a servicios de IA
+- Mejorar UX mostrando errores específicos en lugar de genéricos
+- Verificación de sintaxis antes de análisis profundo mejora eficiencia y precisión
+
+================================================================
+Sesión 11 de mayo de 2026 (tarde) - Persistencia + Seguridad
+================================================================
+
+OBJETIVO:
+Integrar PostgreSQL al microservicio Java para persistir el historial
+de análisis y agregar autenticación de usuarios con JWT (registro y
+login), preparando el camino para el frontend.
+
+DECISIONES DE DISEÑO:
+- PostgreSQL gestionado vía Docker (servicio en docker-compose.yml).
+- Migraciones versionadas con Flyway (V1__init_schema.sql).
+- ddl-auto = validate (Hibernate solo valida, Flyway crea el esquema).
+- Estructura de paquetes plana en com.tp.gestion (menos refactor).
+- Java actualizado de 17 a 21 LTS (Temurin) en pom.xml y Dockerfile.
+- Spring Security 6.x + filtro JWT propio con jjwt 0.12.6.
+- BCryptPasswordEncoder para hashing de contraseñas.
+- Historial guardado como entidad JPA AnalysisHistory; el response del
+  servicio Python se persiste como TEXT JSON (response_json).
+- CORS permisivo en desarrollo para los orígenes del frontend (3000, 5173).
+
+ESQUEMA DE BASE DE DATOS:
+- users(id UUID PK, email UNIQUE, username, password_hash, role, created_at)
+- analysis_history(id UUID PK, user_id FK -> users.id, language, mode,
+                   code TEXT, response_json TEXT, created_at)
+- Índices: idx_users_email, idx_history_user_created.
+
+NUEVAS DEPENDENCIAS (pom.xml):
+- spring-boot-starter-data-jpa
+- spring-boot-starter-security
+- spring-boot-starter-validation
+- postgresql (driver)
+- flyway-core + flyway-database-postgresql
+- jjwt-api / jjwt-impl / jjwt-jackson (0.12.6)
+- spring-security-test (scope test)
+
+ARCHIVOS NUEVOS:
+- src/main/resources/db/migration/V1__init_schema.sql
+- com.tp.gestion.Role (enum USER/ADMIN)
+- com.tp.gestion.User (entity + UserDetails)
+- com.tp.gestion.UserRepository
+- com.tp.gestion.AnalysisHistory (entity)
+- com.tp.gestion.AnalysisHistoryRepository
+- com.tp.gestion.AnalysisHistoryResponse (DTO)
+- com.tp.gestion.JwtService
+- com.tp.gestion.JwtAuthenticationFilter
+- com.tp.gestion.CustomUserDetailsService
+- com.tp.gestion.SecurityConfig
+- com.tp.gestion.AuthService
+- com.tp.gestion.AuthController
+- com.tp.gestion.HistoryService
+- com.tp.gestion.HistoryController
+- com.tp.gestion.RegisterRequest / LoginRequest / AuthResponse / UserResponse
+
+REFACTORS:
+- AnalyzeService: elimina lista en memoria; ahora persiste cada análisis
+  asociado al usuario autenticado y borra el check artesanal de "Bearer valid-token"
+  (lo reemplaza el JwtAuthenticationFilter global).
+- AnalyzeController: recibe @AuthenticationPrincipal User en lugar de
+  manejar manualmente el header Authorization.
+- AnalyzeRequest: agrega @NotBlank en code.
+- application.properties: configuración completa de datasource, JPA,
+  Flyway, JWT y CORS, todo override-able por variables de entorno.
+- docker-compose.yml: agrega servicio postgres:16-alpine con volumen y
+  healthcheck; el servicio Java espera con depends_on -> service_healthy.
+- Dockerfile: actualiza imagen base a temurin 21.
+- Eliminado AnalyzeHistoryEntry.java (POJO obsoleto).
+
+ENDPOINTS RESULTANTES (http://localhost:8080):
+Públicos:
+  GET  /test
+  GET  /api/v1/health
+  POST /api/v1/auth/register
+  POST /api/v1/auth/login
+Protegidos (JWT obligatorio):
+  GET  /api/v1/auth/me
+  POST /api/v1/analyze
+  GET  /api/v1/history
+  GET  /api/v1/history/{id}
+
+SIGUIENTES PASOS:
+1. Probar el flujo completo en Postman: register -> login -> analyze -> history.
+2. Probar errores: registro duplicado (409), login incorrecto (401),
+   analyze sin token (401), token inválido (401).
+3. Verificar que Flyway aplica V1__init_schema.sql en el primer arranque.
+4. Empezar el frontend (puede ser React/Vite en el directorio Interfaz_usuario).
+5. Considerar refresh tokens si la sesión de 60 min no alcanza.
+
+================================================================
+Sesión 12 de mayo de 2026 - Dockerización end-to-end y pruebas
+================================================================
+
+OBJETIVO:
+Levantar TODO el stack con un único `docker compose up --build` y
+validar el flujo completo (register -> login -> analyze -> history)
+desde Postman, sin depender de procesos Java/Python locales.
+
+PROBLEMAS DETECTADOS Y RESUELTOS:
+
+1) Puerto del microservicio Python mal configurado en el Dockerfile.
+   - El Dockerfile arrancaba uvicorn en el puerto 8000.
+   - docker-compose.yml mapea 5000:5000 y Java llama a
+     http://microservicio_inferencia_analisis:5000.
+   - Resultado: Java devolvía 503 Service Unavailable en /analyze.
+   - Fix: Microservicio_inferencia_analisis/Dockerfile -> port 5000
+     y se agregó EXPOSE 5000.
+
+2) Ollama inalcanzable desde dentro del contenedor Python.
+   - En app.py la URL estaba hardcodeada como http://localhost:11434,
+     que dentro del contenedor apunta al propio contenedor, no al host.
+   - Fix en app.py: lectura de OLLAMA_BASE_URL y OLLAMA_MODEL desde
+     variables de entorno (default localhost para dev nativo).
+   - Fix en docker-compose.yml: se pasa
+       OLLAMA_BASE_URL=http://host.docker.internal:11434
+     y se agrega extra_hosts: "host.docker.internal:host-gateway"
+     para compatibilidad con Linux (en Windows/Mac Docker Desktop ya lo provee).
+
+3) OLLAMA_AVAILABLE evaluado una sola vez al startup.
+   - Si Ollama no estaba arriba cuando arrancaba el contenedor Python,
+     quedaba "no disponible" para siempre (aunque después se prendiera).
+   - Fix: check_ollama_availability() ahora se llama por request, y
+     /test la recomputa también.
+
+ARCHIVOS NUEVOS:
+- Microservicio_inferencia_analisis/.dockerignore (excluye venv/,
+  __pycache__/, *.pyc, etc.; reduce el tamaño de la imagen y evita
+  copiar bytecode incompatible de Python 3.13/3.14 dentro de la
+  imagen de Python 3.10).
+- Microservicio_gestion_persistencia/.dockerignore (excluye target/,
+  .git/, .idea/; acelera el build context que Maven recibe).
+
+ARCHIVOS MODIFICADOS:
+- Microservicio_inferencia_analisis/Dockerfile (puerto 5000).
+- Microservicio_inferencia_analisis/app.py (OLLAMA_BASE_URL por env,
+  chequeo de disponibilidad por request, /test devuelve también la
+  URL configurada).
+- docker-compose.yml (env vars de Ollama + extra_hosts en el servicio
+  Python).
+
+VALIDACIONES HECHAS:
+
+- `docker compose config --quiet` -> compose sintácticamente válido.
+- `docker compose up --build` levanta los 3 servicios sin error:
+    * postgres -> Healthy, ready to accept connections en 5432.
+    * Flyway aplica V1__init_schema correctamente al primer arranque.
+    * microservicio_gestion_persistencia -> Tomcat started on 8080.
+    * microservicio_inferencia_analisis -> Uvicorn on 0.0.0.0:5000.
+- GET http://localhost:8080/test  -> 200 "Java OK".
+- GET http://localhost:5000/test  -> 200 con JSON:
+    {"status":"ok", "ollama_available":false,
+     "ollama_base_url":"http://host.docker.internal:11434",
+     "model":"none"}
+  Confirma que la URL hacia el host está bien configurada;
+  ollama_available=false porque todavía no se levantó Ollama
+  en el host (probaremos el camino con IA en la próxima sesión).
+
+PRUEBAS DE FLUJO COMPLETO EN POSTMAN:
+- POST /api/v1/auth/register -> 201 con accessToken + user.
+- POST /api/v1/analyze sin Authorization -> 403 Forbidden
+  (comportamiento esperado: la ruta exige JWT).
+- POST /api/v1/analyze con Bearer Token -> 200 con el análisis
+  simulado (fallback) porque Ollama no está activo:
+    {"issues":[{"line":0,"message":"No se detectaron problemas graves",
+                 "severity":"info"}],
+     "explanation":"Análisis simulado en modo senior-dev para
+                    lenguaje python. Nota: Ollama no disponible",
+     "refactoredCode":null}
+- Persistencia verificada: cada análisis queda guardado en la tabla
+  analysis_history de Postgres (consultable vía
+  `docker compose exec postgres psql -U auditoria -d auditoria`
+  o vía GET /api/v1/history con el mismo token).
+
+CONCEPTOS REFORZADOS DE JWT:
+- Duración del token: 60 minutos (app.jwt.expiration-minutes=60,
+  override-able por JWT_EXPIRATION_MINUTES).
+- La respuesta de /register y /login incluye "expiresInMinutes".
+- Códigos de estado a esperar:
+    * 403 -> no se envió el header Authorization.
+    * 401 -> token vencido, mal formado o usuario inexistente.
+- Truco: GET /api/v1/auth/me como "ping" barato para chequear si el
+  token sigue vivo.
+- El mismo token sirve para GET y POST de cualquier endpoint
+  protegido; no hay tokens diferentes por método HTTP.
+- Tip de Postman para no andar copiando el token a mano:
+    pestaña Scripts -> Post-response en /login:
+        const json = pm.response.json();
+        pm.collectionVariables.set("token", json.accessToken);
+    y en el resto de las requests usar Bearer Token = {{token}}.
+
+LECCIONES APRENDIDAS HOY:
+- "localhost" dentro de un contenedor es el propio contenedor; para
+  hablar con servicios del host se usa host.docker.internal (Windows/Mac)
+  o el truco extra_hosts host-gateway (Linux).
+- Las decisiones de puerto deben quedar consistentes entre Dockerfile
+  (EXPOSE/CMD), docker-compose.yml (ports) y la URL que usa el cliente
+  (Java apuntando a Python).
+- Para evitar tokens duplicados o expiraciones inesperadas conviene
+  centralizar la captura del token en un script post-response de Postman.
+- El volumen `postgres_data` mantiene los datos entre reinicios; solo
+  `docker compose down -v` los borra.
+
+SIGUIENTES PASOS:
+1. Probar el camino con IA real:
+   - Instalar/iniciar Ollama en el host (`ollama serve`).
+   - `ollama pull qwen2` (o el modelo que se prefiera).
+   - Verificar que GET /test del microservicio Python devuelve
+     "ollama_available": true.
+   - Re-tirar POST /api/v1/analyze con un caso pedagógico
+     (ej.: println('Hola Mundo') con language=python) y validar que
+     la explicación detecta que println no pertenece a Python.
+2. Documentar la guía de despliegue final con docker-compose en el
+   README/PDF del entregable.
+3. Empezar el frontend en Interfaz_usuario:
+   - React + Vite, editor con resaltado (Monaco o CodeMirror).
+   - Vista de login/register, vista de análisis, vista de historial.
+   - CORS ya está habilitado para http://localhost:3000 y 5173.
+4. Capturar la API en Swagger UI (http://localhost:8080/swagger-ui.html)
+   o exportar una colección de Postman para anexar al informe.
+5. Endurecer la respuesta del fallback:
+   - Devolver refactoredCode con el código original en lugar de null
+     cuando no haya nada para refactorizar (mejor DX para el frontend).
+6. Considerar healthcheck propio para el servicio Python en
+   docker-compose.yml y cambiar el depends_on de Java a
+   condition: service_healthy.
+7. Probar con código en otros lenguajes (Java, Kotlin) para verificar
+   los caminos del fallback y de Ollama.
+8. Refresh tokens / sesiones largas (opcional, evaluar si vale la pena
+   para el alcance del TP).
+
+================================================================
+Sesión 13 de mayo de 2026 - Conexión del frontend al backend
+================================================================
+
+OBJETIVO:
+Conectar la interfaz de usuario (Interfaz_usuario, React + Vite) al
+microservicio Java de gestión. Hasta esta sesión el frontend estaba
+100% desconectado, con un auditApi.js completamente mockeado y datos
+de un mockAudits.js. La meta era cerrar el ciclo end-to-end:
+registro -> login -> selección de lenguaje -> análisis -> historial,
+consumiendo los endpoints reales de Spring Boot y mostrando la
+respuesta de la IA Python.
+
+=== PASO 1 - ANÁLISIS DEL FRONTEND VS CONTEXTO.MD ===
+
+Verificamos que el frontend ya cumplía a nivel UI todas las consignas:
+  - Editor con resaltado de sintaxis -> Monaco Editor.
+  - Severidades Crítico/Advertencia/Sugerencia -> SeverityBadge.
+  - Historial por usuario -> página History + AuditTable.
+  - Refactor + explicación pedagógica -> AuditResult.
+  - Multilenguaje (>=3) -> selector con varios lenguajes.
+Conclusión: la UI cumplía, pero todo era mock. Faltaba conectar y
+proteger rutas.
+
+DIFERENCIAS DE CONTRATO DETECTADAS ENTRE FRONTEND Y BACKEND:
+- Login: backend devuelve { accessToken, tokenType, expiresInMinutes,
+  user }. El mock guardaba "token" plano.
+- Register: backend exige { email, username, password } con password
+  de mínimo 8 chars. El frontend pedía { name, email, password,
+  confirmPassword }.
+- /analyze del backend devuelve { issues:[{line,message,severity}],
+  explanation, refactoredCode } con severities critical|warning|info.
+  El frontend esperaba un shape más rico (title, summary, type,
+  description, recommendation, globalSeverity, etc.). Se resolvió
+  con una capa de mapeo en el frontend (no se tocaron los DTOs Java).
+- /history devuelve Page<...> de Spring; el frontend esperaba array
+  plano. Se extrae .content en el cliente.
+- No había rutas protegidas, ni logout funcional, ni datos del usuario
+  reales (Pablo Gonzalez aparecía hardcodeado en varios lugares).
+
+=== PASO 2 - DECISIONES DE DISEÑO ===
+
+Las cuatro decisiones que orientaron toda la implementación se
+acordaron con el usuario antes de tocar código (formulario de
+preguntas):
+
+- Límite del editor de código: 2000 caracteres.
+  Razón: el microservicio Python usa Ollama con un modelo gratuito
+  (qwen2). Mantener el prompt acotado evita sobrecargar al agente
+  y deja latencias razonables. 2000 chars ~ 500 tokens, suficiente
+  para una función o clase chica/mediana.
+- Lenguajes en el selector: solo Python, Java, Kotlin (mínimo del
+  Contexto.md; se eliminó JavaScript del selector original).
+- Token storage: localStorage. Sobrevive a refresh y al cierre del
+  navegador. Trade-off conocido contra XSS pero aceptable para el TP.
+- Dashboard: métricas del último análisis (no promedios ni mock).
+- Settings: solo-lectura mostrando username/email/role + botón
+  Cerrar sesión (no hay endpoints de edición de perfil y no aporta
+  al objetivo del TP).
+- API base URL: variable de entorno VITE_API_BASE_URL con default
+  http://localhost:8080. .env.example versionado, .env ignorado.
+
+=== ARQUITECTURA DE LA CAPA NUEVA EN EL FRONTEND ===
+
+ARCHIVOS NUEVOS:
+- src/services/apiClient.js
+    Cliente HTTP central basado en fetch.
+    * Adjunta Authorization: Bearer <token> si auth=true.
+    * Normaliza errores Spring leyendo message/error/detail/errors[].
+    * Da un mensaje claro si el backend no responde (en vez de
+      "respuesta 0 desconocida" que tira fetch).
+    * En 401 limpia la sesión y dispara un evento custom
+      "code-audit-ai:unauthorized" para que el AuthContext reaccione
+      sin esperar a un refresh manual.
+    * Storage keys: code-audit-ai.token, code-audit-ai.user.
+
+- src/context/AuthContext.jsx
+    Provider con estado global { user, token, isAuthenticated }
+    y hooks login()/logout(). Re-hidrata desde localStorage al
+    montar. Reacciona al evento "code-audit-ai:unauthorized" y al
+    storage event (sincroniza si se desloguea en otra pestaña).
+
+- src/components/ProtectedRoute.jsx
+    Guarda las rutas internas. Si no hay token redirige a /login
+    preservando la ruta original en location.state.from para que
+    el Login pueda hacer redirect-back.
+
+- src/utils/auditMapper.js
+    Adapta los DTOs del backend al modelo histórico del frontend
+    sin tocar los componentes:
+    * mapSeverity: critical/warning/info -> critical/warning/
+      suggestion (más algunos alias: error->critical, hint->
+      suggestion, etc.).
+    * pickWorstSeverity: calcula globalSeverity tomando el peor
+      severity de la lista.
+    * buildAuditFromAnalyzeResponse: combina la respuesta del
+      backend con el código original y el lenguaje para construir
+      el objeto que renderean Dashboard/AuditResult/History.
+    * mapHistoryEntry: idem para los items de /api/v1/history.
+
+- src/config/auditConfig.js
+    MAX_CODE_CHARS = 2000 y SUPPORTED_LANGUAGES (Python, Java,
+    Kotlin) centralizados para reutilizar y para que cambiarlos
+    sea trivial.
+
+- vite.config.js
+    Faltaba en el repo (sin él Vite no procesa JSX). Activa
+    @vitejs/plugin-react y fija el puerto 5173 explícitamente.
+
+- .env.example
+    VITE_API_BASE_URL=http://localhost:8080 documentado para que
+    cualquiera pueda clonar el repo y arrancar.
+
+ARCHIVOS REESCRITOS:
+- src/App.jsx
+    Router con guardas: si hay sesión y se entra a /login o
+    /register redirige a /dashboard; si no hay sesión y se entra
+    a cualquier ruta protegida redirige a /login. Catch-all "*"
+    cae al / (que a su vez decide login o dashboard).
+- src/main.jsx
+    Envuelve <App/> con <AuthProvider/>.
+- src/services/auditApi.js
+    Reescrito de cero, sin mocks. Funciones:
+    * loginUser, registerUser, fetchCurrentUser
+    * analyzeCode (manda { code, language, mode } a /api/v1/
+      analyze y construye el objeto del frontend).
+    * getAuditHistory (paginado), getAuditById.
+- src/pages/Login.jsx
+    Conectado, manejo de errores, redirige a redirectTo
+    (location.state.from || /dashboard). Quitamos los valores
+    default "pablo@mail.com/123456" que estaban como placeholder.
+- src/pages/Register.jsx
+    Campos: username, email, password, confirmPassword. Valida
+    coincidencia de passwords y largo >= 8 en cliente antes de
+    pegarle al backend.
+- src/pages/NewAudit.jsx
+    * Solo Python/Java/Kotlin en el select.
+    * Contador de caracteres en tiempo real con colores
+      (slate -> yellow -> amber -> red según se acerque al
+      límite).
+    * Mensaje explícito de "superaste el límite" y deshabilita
+      el botón si está vacío o por encima del cap.
+    * Subraya en el aside que la IA es gratuita y por eso se
+      acota el input.
+- src/pages/AuditResult.jsx
+    Usa la respuesta del state si vino de NewAudit; si la ruta
+    se accede por URL (refresh, share, etc.) llama a
+    /history/{id} con el mapper.
+- src/pages/Dashboard.jsx
+    Hace getAuditHistory({size:5}) al montar y calcula las tres
+    métricas (críticos/warnings/sugerencias) del primer item.
+    Muestra el username real.
+- src/pages/History.jsx
+    Carga el historial paginado, muestra estado vacío amable
+    cuando no hay auditorías, y maneja errores.
+- src/pages/Settings.jsx
+    Solo-lectura. Renderea username/email/role del usuario
+    autenticado + botón Cerrar sesión con redirect a /login.
+- src/layouts/AppLayout.jsx
+    Sidebar con username real (no Pablo Gonzalez hardcodeado),
+    rol formateado y botón logout funcional con redirect.
+- src/components/IssueCard.jsx
+    Tolera issue.recommendation vacía (no renderea la caja
+    "Recomendación" si no llega del backend).
+- README.md del frontend
+    Instrucciones reales, endpoints consumidos, estructura, y
+    sección "Cómo correrlo" con dos opciones (dos terminales o
+    docker compose -d) más una tabla de chequeo de salud por
+    servicio.
+
+ARCHIVOS ELIMINADOS:
+- src/data/mockAudits.js
+
+=== CAMBIOS EN EL BACKEND JAVA (mínimos pero necesarios) ===
+
+- AnalyzeResponse.java:
+    * @JsonAlias({"refactored_code"}) sobre refactoredCode.
+      Fix de un bug PREEXISTENTE: el microservicio Python emite
+      el campo en snake_case y sin alias Jackson nunca lo
+      deserializaba al camelCase del DTO Java, por lo cual el
+      "código refactorizado" siempre llegaba null al frontend.
+    * Nuevo campo historyId (UUID). Se completa después de
+      persistir el análisis, así el frontend puede navegar a
+      /audit/result/{historyId} con un id real y sobrevivir a
+      un refresh de la página.
+    * @JsonInclude(NON_NULL) para no enviar nulls al frontend.
+
+- AnalyzeService.java:
+    * persistHistory() ahora retorna el UUID generado en lugar
+      de void.
+    * analyze() llama a setHistoryId() en la respuesta antes de
+      devolverla.
+
+No se tocaron migraciones de Flyway ni SecurityConfig: las rutas
+ya estaban bien permisivas para /auth/* y bien protegidas para
+el resto, y el CORS ya tenía 5173 en la whitelist desde la
+sesión del 11 de mayo.
+
+=== DIAGNÓSTICO DE ERRORES AL PRIMER ARRANQUE ===
+
+En el primer intento de levantar todo aparecieron dos "errores"
+que en realidad no lo eran:
+
+1) HTTP 403 al abrir http://localhost:8080 desde el browser.
+   - Comportamiento esperado. Spring Security exige JWT en todo
+     salvo /api/v1/auth/register, /api/v1/auth/login, /test,
+     /api/v1/health y swagger. Entrar a "/" sin token = 403.
+   - Para validar que el backend vive desde el browser:
+       http://localhost:8080/test
+       http://localhost:8080/swagger-ui/index.html
+
+2) ERR_CONNECTION_REFUSED al abrir http://localhost:5173.
+   - El frontend NO estaba corriendo. La causa fue de UX del
+     README: las cuatro líneas
+       docker compose up --build
+       cd Interfaz_usuario
+       npm install
+       npm run dev
+     se ejecutaron como un bloque pero docker compose up se
+     queda en foreground (es un servidor) y bloquea la terminal,
+     por lo que cd/npm install/npm run dev nunca corrieron.
+   - Fix del README: instrucciones explícitas con dos
+     alternativas (dos terminales o `docker compose up -d`)
+     y aclaración del 403.
+
+=== MAPA DE PUERTOS (estado actual del sistema) ===
+
+  5173 - Frontend Vite/React (vite.config.js + CORS del backend)
+  8080 - Backend Java Spring Boot (application.properties +
+         docker-compose.yml)
+  5000 - Backend Python FastAPI (Dockerfile python + compose +
+         PYTHON_SERVICE_URL en compose para que Java le hable)
+  5432 - PostgreSQL (compose + POSTGRES_PORT en application.
+         properties)
+ 11434 - Ollama en el host (default del binario; el contenedor
+         Python lo alcanza por host.docker.internal:11434
+         gracias al extra_hosts del compose).
+
+CORS whitelist (app.cors.allowed-origins en .properties):
+  http://localhost:3000, http://localhost:5173
+
+=== FLUJO END-TO-END VALIDADO ===
+
+1) Usuario abre http://localhost:5173 -> redirige a /login.
+2) Register -> POST /api/v1/auth/register -> 201, guarda
+   accessToken + user en localStorage, redirige a /dashboard.
+3) Login -> POST /api/v1/auth/login -> 200, idéntico flujo.
+4) Nueva auditoría -> selecciona Python/Java/Kotlin, escribe
+   código (hard cap 2000 chars con feedback visual), click
+   "Analizar" -> POST /api/v1/analyze con Bearer token -> 200.
+5) Frontend navega a /audit/result/<historyId> y renderea:
+   - código original y código refactorizado lado a lado,
+   - lista de issues con badge de severidad y línea afectada,
+   - explicación pedagógica de la IA.
+6) Historial: GET /api/v1/history?page=0&size=20 con Bearer ->
+   AuditTable con badge por entrada.
+7) Logout (sidebar o Settings) -> limpia localStorage, navega
+   a /login.
+
+CONSIDERACIONES OPERATIVAS:
+- Si el token vence o se invalida, la próxima request devuelve
+  401, apiClient limpia la sesión y emite el evento custom; el
+  AuthContext reacciona y la siguiente navegación cae en el
+  ProtectedRoute -> /login. No hace falta refresh.
+- El campo historyId del response permite refrescar la página
+  de resultado sin perder el detalle.
+
+=== ESTADO FINAL DE LA SESIÓN ===
+Los 3 servicios levantan con docker compose up --build y el
+frontend en npm run dev sobre 5173. El flujo completo se probó
+manualmente y funciona. El frontend ya NO tiene mocks: todo
+viene del backend real.
+
+PRÓXIMOS PASOS:
+
+CORTO PLAZO (para terminar el entregable del TP):
+1. Probar el camino con IA real activada:
+   - Levantar `ollama serve` en el host.
+   - `ollama pull qwen2` (o el modelo que se prefiera).
+   - Verificar que GET http://localhost:5000/test devuelve
+     "ollama_available": true.
+   - Hacer un análisis desde el frontend con un caso pedagógico
+     real (ej.: SQL Injection en Python, catch genérico en Java,
+     null safety mal usada en Kotlin) y validar que la IA
+     responde con explicación y refactor.
+2. Tomar capturas de pantalla del flujo completo
+   (Login -> Register -> Dashboard -> NewAudit con contador ->
+   Loading -> Result con issues y refactor -> History) para
+   anexarlas al PDF de entrega.
+3. Exportar la API en Swagger UI
+   (http://localhost:8080/swagger-ui/index.html) o como
+   colección de Postman, y adjuntarlo al informe.
+4. Diagrama de arquitectura final (frontend 5173 -> Java 8080
+   -> Python 5000 -> Ollama 11434; con Postgres 5432 colgando
+   de Java). Reusable para la sección "Diagramas de
+   Arquitectura" del PDF.
+5. Documentar el DER de la base (tablas users y
+   analysis_history) para la sección "Diseño de Base de Datos"
+   del PDF.
+
+MEDIANO PLAZO (mejoras opcionales si sobra tiempo):
+6. Endurecer el fallback del microservicio Python para que
+   issues nunca venga vacío y refactoredCode nunca venga null
+   (siempre devolver el código original como mínimo).
+7. Mostrar fecha + lenguaje en la card de cada issue para más
+   contexto pedagógico.
+8. Empaquetar el frontend en Docker y descomentar el bloque
+   interfaz_usuario en docker-compose.yml para que todo el
+   stack levante con un único comando.
+9. Agregar healthcheck propio al servicio Python en
+   docker-compose.yml y pasar el depends_on de Java a
+   condition: service_healthy.
+
+LARGO PLAZO (si se quisiera escalar más allá del TP):
+10. Mover el JWT a httpOnly cookie en vez de localStorage para
+    mitigar XSS.
+11. Refresh tokens / sesiones largas.
+12. Tests automáticos: unit tests del mapper, tests de
+    integración con MockMvc en Java, tests de componentes con
+    Vitest en el frontend.
+13. CI básico (GitHub Actions) que corra los tests y haga
+    docker build en cada PR.
