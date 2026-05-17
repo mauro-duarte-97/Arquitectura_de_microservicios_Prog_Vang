@@ -58,14 +58,11 @@
 		</dependency>
 
 		<dependency>
-<<<<<<< Updated upstream
-=======
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
 		<dependency>
->>>>>>> Stashed changes
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>

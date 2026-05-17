@@ -45,11 +45,8 @@ public class SecurityConfig {
                         // Rutas p\u00fablicas
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/test", "/api/v1/health").permitAll()
-<<<<<<< Updated upstream
-=======
                         // Actuator: health/info/metrics p\u00fablicos en dev (filtrar en prod si hace falta)
                         .requestMatchers("/actuator/**").permitAll()
->>>>>>> Stashed changes
                         // Swagger / OpenAPI
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // Endpoint informativo del GET /analyze (devuelve un mensaje de ayuda)
