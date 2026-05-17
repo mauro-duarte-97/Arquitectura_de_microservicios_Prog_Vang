@@ -1,9 +1,5 @@
 // Límite de caracteres permitido en el editor de código.
-<<<<<<< Updated upstream
-// El microservicio Python usa modelos LLM gratuitos (qwen2 vía Ollama), por lo
-=======
 // El microservicio Python usa modelos LLM gratuitos (qwen2.5-coder:7b vía Ollama), por lo
->>>>>>> Stashed changes
 // que mantenemos el input acotado para que el análisis sea razonablemente
 // rápido y no sature el agente.
 export const MAX_CODE_CHARS = 2000;

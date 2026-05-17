@@ -1,9 +1,18 @@
-# Flujo principal del sistema
+# Informe de Arquitectura y Lógica del Sistema
 
-Este documento describe cómo viaja una petición de auditoría desde que el
-usuario pega código en el frontend hasta que ve la respuesta en pantalla.
-Refleja el estado actual del sistema (mayo 2026), con todas las piezas
-dockerizadas y el modelo qwen2 corriendo en local.
+## Introducción y Objetivo del Sistema
+
+Este documento presenta la arquitectura, diseño lógico y flujo de datos de la plataforma educativa de auditoría de código impulsada por IA. El objetivo principal del sistema es proporcionar a los estudiantes un entorno interactivo donde puedan enviar su código fuente y recibir feedback pedagógico estructurado (identificación de bugs, vulnerabilidades, mejoras de rendimiento y buenas prácticas), simulando la revisión de un desarrollador Senior.
+
+El documento describe cómo viaja una petición de auditoría desde que el usuario pega código en el frontend hasta que ve la respuesta en pantalla. Refleja el estado actual del sistema (mayo 2026), con todas las piezas dockerizadas y el modelo qwen2.5 7b corriendo en local.
+
+## Justificación de Decisiones Arquitectónicas
+
+Para cumplir con los requisitos de escalabilidad, mantenibilidad y rendimiento, se adoptó una arquitectura de **microservicios**:
+- **Microservicios:** La separación de responsabilidades permite escalar independientemente el frontend, la lógica de negocio y el procesamiento de IA (que es intensivo en recursos).
+- **Java/Spring Boot (Orquestación y Persistencia):** Elegido por su robustez, seguridad (manejo de JWT) y madurez en la persistencia relacional (JPA/Hibernate).
+- **Python/FastAPI (Inferencia y Análisis):** Python es el estándar de la industria para IA. Facilita la integración con modelos, el parseo de código nativo (ej. AST para Python) y el procesamiento eficiente de cadenas para prompts.
+- **Ollama local (qwen2.5 7b):** Operar el modelo de lenguaje en local elimina la dependencia y costos de APIs de terceros, asegura la privacidad total del código auditado y permite la ejecución del sistema de manera 100% autónoma.
 
 ## Componentes y puertos
 
@@ -12,7 +21,7 @@ dockerizadas y el modelo qwen2 corriendo en local.
 | 1 | `interfaz_usuario` | React + Vite, servido por Nginx | 5173 → 80 | UI (login, editor, resultado, historial). |
 | 2 | `microservicio_gestion_persistencia` | Spring Boot 3 + JWT | 8080 | Orquestador. AuthN/AuthZ, persistencia, llamada al servicio Python. |
 | 3 | `microservicio_inferencia_analisis` | FastAPI | 5000 | Análisis con IA. Construye el prompt, llama a Ollama, normaliza el JSON. |
-| 4 | `ollama` | Ollama + qwen2 (4.4 GB) | 11434 | LLM local. Modelo precargado en el volumen `ollama_data`. |
+| 4 | `ollama` | Ollama + qwen2.5 7b (4.7 GB) | 11434 | LLM local. Modelo especializado en código, precargado en el volumen `ollama_data`. |
 | 5 | `postgres` | Postgres 16 | 5432 | Usuarios + historial de auditorías (volumen `postgres_data`). |
 
 Toda la comunicación interna se hace por la red privada de Docker Compose,
@@ -45,7 +54,7 @@ quedan accesibles solo desde otros contenedores.
      │       - Few-shot example (caso typical: expected ':' en Python).
      │       - Hint estructurado según el output del parser.
      │   4. POST http://ollama:11434/api/generate con format=json y
-     │      timeout=120s. Modelo: qwen2.
+     │      timeout=120s. Modelo: qwen2.5 7b.
      │   5. Post-procesado:
      │       - Si había syntax error, garantiza que aparezca como issue
      │         critical en la respuesta.
@@ -83,9 +92,9 @@ quedan accesibles solo desde otros contenedores.
      │       - Bloque "Explicación pedagógica" con el párrafo de la IA.
 ```
 
-## Defensa en profundidad para la calidad de respuesta
+## Estrategias de Mitigación y Tolerancia a Fallos del LLM
 
-El sistema asume que el LLM (qwen2) puede equivocarse u omitir campos.
+El sistema asume que el LLM (qwen2.5) puede equivocarse u omitir campos.
 Hay tres capas que se complementan:
 
 1. **Prompt engineering**: reglas explícitas, few-shot, hints del parser.
@@ -151,13 +160,3 @@ Protegidos (JWT obligatorio):
   `docker compose up -d --build <servicio>` rebuildea solo ese servicio
   sin tocar los demás (ej. `microservicio_inferencia_analisis` si solo
   cambió el prompt; `interfaz_usuario` si solo cambió React).
-
-## Plan de trabajo (estado actual)
-
-| Fase | Estado | Notas |
-|---|---|---|
-| 1. Diseño (OpenAPI, DER, JSON de IA) | ✅ Completo | DER en bitácora, JSON contrato estabilizado. |
-| 2. MVP funcional (Java + Python + UI básica) | ✅ Completo | Mayo 13. Frontend con mocks reemplazado por backend real. |
-| 3. Features clave (severidades, refactor, historial, multilenguaje) | ✅ Completo | Python/Java/Kotlin, severities mapeadas, historial paginado. |
-| 4. Hardening (errores, timeouts, logs, UX) | ✅ Completo | Mayo 15. Anti-cortocircuito, post-procesado, TITLE_PATTERNS, jerarquía de fallback. |
-| 5. Entrega (documentación, docker-compose, demo) | 🔄 En curso | One-click listo. Faltan screenshots, DER del PDF, capturas de Swagger. |

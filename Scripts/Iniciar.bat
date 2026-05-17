@@ -8,10 +8,7 @@ REM Cambia el directorio de trabajo al de este script (por si se ejecuta
 REM con doble click desde otra ubicacion).
 cd /d "%~dp0"
 
-REM Crea/actualiza Iniciar.lnk con code.ico (Windows no admite icono en .bat).
-if exist "%~dp0code.ico" if exist "%~dp0scripts\aplicar-iconos.ps1" (
-  powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0scripts\aplicar-iconos.ps1" -Quiet 2>nul
-)
+
 
 echo.
 echo  ======================================================
@@ -43,7 +40,8 @@ echo.
 echo  [2/4] Levantando los contenedores (esto puede tardar varios minutos
 echo        la primera vez, sobre todo descargando el modelo de IA)...
 echo.
-docker compose up -d --build
+cd ..
+docker compose -f docker-compose\docker-compose.yml --project-directory . up -d --build
 if errorlevel 1 (
     echo.
     echo  ERROR al construir o levantar los contenedores.

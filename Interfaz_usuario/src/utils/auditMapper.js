@@ -24,8 +24,6 @@ export function pickWorstSeverity(issues = []) {
   return worst;
 }
 
-<<<<<<< Updated upstream
-=======
 // Patrones conocidos: si el mensaje contiene alguna de estas frases, devolvemos
 // directamente la etiqueta corta. Es el atajo mas barato y deterministico antes
 // de caer al heuristico generico de "primeras N palabras".
@@ -86,7 +84,6 @@ function pickIssueTitle(rawTitle, message) {
 
 // Helper viejo, mantenido por compatibilidad con `buildTitle` (titulo de la
 // auditoria completa, no de cada issue). Esto no afecta a los cards.
->>>>>>> Stashed changes
 function extractTitleFromMessage(message, fallback = "Hallazgo detectado") {
   if (!message) return fallback;
   const firstLine = String(message).split("\n")[0].trim();
@@ -125,12 +122,6 @@ function formatDate(isoString) {
 
 function mapIssue(issue) {
   const severity = mapSeverity(issue?.severity);
-<<<<<<< Updated upstream
-  return {
-    severity,
-    type: issue?.type ?? severity,
-    title: extractTitleFromMessage(issue?.message),
-=======
   // El titulo del card es SIEMPRE una etiqueta corta. Reglas (ver pickIssueTitle):
   //   1. Si el backend mando un `title` corto (<= 6 palabras), se respeta.
   //   2. Si mando algo largo o no mando nada, derivamos un titulo desde el
@@ -143,7 +134,6 @@ function mapIssue(issue) {
     severity,
     type: issue?.type ?? severity,
     title,
->>>>>>> Stashed changes
     line: issue?.line ?? 0,
     description: issue?.message ?? "Sin descripción",
     // El backend actual no devuelve recomendación por issue: usamos string vacío

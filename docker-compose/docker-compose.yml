@@ -17,24 +17,6 @@ services:
       timeout: 5s
       retries: 10
 
-<<<<<<< Updated upstream
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-auditoria}
-      POSTGRES_USER: ${POSTGRES_USER:-auditoria}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-auditoria}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-auditoria} -d ${POSTGRES_DB:-auditoria}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-=======
   # --- Modelo de IA local (Ollama + qwen2.5-coder:7b pre-pulled) --------
   ollama:
     build: ./Ollama_servicio
@@ -45,14 +27,10 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     healthcheck:
-      # `ollama list` lista los modelos disponibles. Si todavia esta
-      # descargando el modelo en el primer arranque, este check va a
-      # responder OK (el servidor ya esta arriba) pero el modelo no estara
-      # listo. Por eso el microservicio Python tiene fallback amable.
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
       interval: 5s
       timeout: 5s
-      retries: 60   # da hasta 5 minutos para el primer pull
+      retries: 60
       start_period: 10s
 
   # --- Microservicio Python (inferencia / IA) ---------------------------
@@ -61,7 +39,6 @@ services:
     ports:
       - "5000:5000"
     environment:
-      # Apunta a Ollama dentro de la red de Docker.
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
     depends_on:
@@ -69,7 +46,6 @@ services:
         condition: service_healthy
 
   # --- Microservicio Java (gestion / persistencia / API) ----------------
->>>>>>> Stashed changes
   microservicio_gestion_persistencia:
     build: ./Microservicio_gestion_persistencia
     ports:
@@ -83,11 +59,7 @@ services:
       PYTHON_SERVICE_URL: http://microservicio_inferencia_analisis:5000
       JWT_SECRET: ${JWT_SECRET:-dev-secret-cambiar-en-prod-este-secreto-tiene-mas-de-32-bytes-ok}
       JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
-<<<<<<< Updated upstream
-=======
-      # El frontend dockerizado tambien aparece como origen permitido.
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
->>>>>>> Stashed changes
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,21 +73,12 @@ services:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
     ports:
-<<<<<<< Updated upstream
-      - "5000:5000"
-    environment:
-      # En Docker, "localhost" es el propio contenedor.
-      # host.docker.internal apunta al host (donde corre Ollama).
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2}
-    extra_hosts:
-      # Necesario en Linux; en Windows/Mac Docker Desktop ya lo provee.
-      - "host.docker.internal:host-gateway"
-
-volumes:
-  postgres_data:
-=======
       - "5173:80"
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       microservicio_gestion_persistencia:
         condition: service_started
@@ -123,4 +86,3 @@ volumes:
 volumes:
   postgres_data:
   ollama_data:
->>>>>>> Stashed changes

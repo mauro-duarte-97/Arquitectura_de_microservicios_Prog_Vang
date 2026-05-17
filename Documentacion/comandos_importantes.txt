@@ -2,7 +2,6 @@
 Comandos de lanzamiento - Plataforma de Auditoria de Codigo
 ================================================================
 
-<<<<<<< Updated upstream
 # ----------------------------------------------------------------
 # 1) Base de datos PostgreSQL (Docker)
 # ----------------------------------------------------------------
@@ -246,9 +245,7 @@ Invoke-RestMethod http://localhost:5000/test
 #      "mode": "Senior Dev"
 #    }
 #
-<<<<<<< Updated upstream
-# 4) GET /api/v1/history  -> ves el analisis recien guardado
-=======
+
 # 4) GET /api/v1/history  -> ves el analisis recien guardado.
 
 
@@ -261,4 +258,3 @@ Invoke-RestMethod http://localhost:5000/test
 #   Validar que el Dockerfile funciona .... Modo A
 #   Debuggear con breakpoints en IDE ...... Modo B
 #   Primer arranque del repo (smoke test).. Modo A
->>>>>>> Stashed changes

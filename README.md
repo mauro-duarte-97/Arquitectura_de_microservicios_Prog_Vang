@@ -35,8 +35,7 @@ Tener **Docker Desktop** instalado y corriendo:
 
 ### Arranque del sistema
 
-Doble-click en **`Iniciar.bat`** o en **`Iniciar.lnk`** (mismo script; el `.lnk`
-muestra el icono `code.ico`). Ejecutá **`Aplicar_iconos.bat`** una vez si
+Doble-click en **`Iniciar.bat`** . Ejecutá **`Aplicar_iconos.bat`** una vez si
 querés crear o actualizar `Iniciar.lnk`.
 
 Lo que hace el script:

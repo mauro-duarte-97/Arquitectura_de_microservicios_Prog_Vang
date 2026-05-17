@@ -11,7 +11,8 @@ echo    Code Audit AI - Deteniendo el sistema
 echo  ======================================================
 echo.
 
-docker compose down
+cd ..
+docker compose -f docker-compose\docker-compose.yml --project-directory . down
 if errorlevel 1 (
     echo.
     echo  Ocurrio un error al detener los contenedores.

@@ -37,11 +37,7 @@ class AnalyzeResponse(BaseModel):
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_URL = f"{OLLAMA_BASE_URL}/api/generate"
 OLLAMA_TAGS_URL = f"{OLLAMA_BASE_URL}/api/tags"
-<<<<<<< Updated upstream
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2")
-=======
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b")
->>>>>>> Stashed changes
 
 
 def check_ollama_availability() -> bool:
@@ -56,35 +52,6 @@ def check_ollama_availability() -> bool:
 
 
 import ast
-<<<<<<< Updated upstream
-
-def analyze_with_ollama(code: str, language: str, mode: str) -> dict:
-    """Usa Ollama para analizar el código con IA"""
-    
-    # First, check for syntax errors
-    if language == "python":
-        try:
-            ast.parse(code)
-        except SyntaxError as e:
-            return {
-                "issues": [{"line": e.lineno or 1, "message": f"SyntaxError: {e.msg}", "severity": "critical"}],
-                "explanation": f"Hay un error de sintaxis en la línea {e.lineno or 1}: {e.msg}. Corrige este error antes de continuar.",
-                "refactored_code": code  # No refactorizar si hay error
-            }
-        except Exception as e:
-            return {
-                "issues": [{"line": 1, "message": f"Error parsing code: {str(e)}", "severity": "critical"}],
-                "explanation": f"Error al analizar el código: {str(e)}",
-                "refactored_code": code
-            }
-    
-    prompt = f"""You are an expert code reviewer analyzing code for a student learning platform.
-The code has been checked for syntax errors and is valid. Now provide:
-1. Identify logical issues and code quality problems (performance, security, best practices)
-2. Provide an explanation suitable for a student
-3. Suggest refactored code
-=======
->>>>>>> Stashed changes
 
 
 def _detect_python_syntax_error(code: str) -> Optional[dict]:
@@ -232,16 +199,6 @@ Student's code (with line numbers for reference; omit numbers in refactored_code
 
 Mode: {mode}
 
-<<<<<<< Updated upstream
-Respond in JSON format:
-{{
-  "issues": [
-    {{"line": 1, "message": "error description", "severity": "warning|info"}}
-  ],
-  "explanation": "Clear explanation for the student",
-  "refactored_code": "Improved version of the code"
-}}"""
-=======
 {schema}"""
 
     return f"""{common_rules}
@@ -285,7 +242,6 @@ def analyze_with_ollama(code: str, language: str, mode: str) -> dict:
     """
     syntax_error = _detect_python_syntax_error(code) if language == "python" else None
     prompt = _build_prompt(code, language, mode, syntax_error)
->>>>>>> Stashed changes
 
     try:
         payload = {
@@ -294,13 +250,8 @@ def analyze_with_ollama(code: str, language: str, mode: str) -> dict:
             "stream": False,
             "format": "json",
         }
-<<<<<<< Updated upstream
-        
-        response = requests.post(OLLAMA_URL, json=payload, timeout=60)
-=======
 
         response = requests.post(OLLAMA_URL, json=payload, timeout=120)
->>>>>>> Stashed changes
         response.raise_for_status()
 
         result = response.json()
@@ -336,10 +287,6 @@ def analyze_with_ollama(code: str, language: str, mode: str) -> dict:
         return analysis
     except Exception as ex:
         print(f"Ollama error: {ex}")
-<<<<<<< Updated upstream
-        # Return error info instead of None
-        return {"error": f"Error conectando con Ollama: {str(ex)}"}
-=======
         # Fallback amable: si hay syntax error detectado, al menos lo reportamos.
         if syntax_error:
             return {
@@ -376,32 +323,19 @@ def _safe_issue(raw: dict) -> Optional[Issue]:
         return Issue(line=line, message=message, severity=severity, title=title)
     except Exception:
         return None
->>>>>>> Stashed changes
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
 def analyze(request: AnalyzeRequest):
     code = request.code
 
-<<<<<<< Updated upstream
-    # Intenta usar Ollama si está disponible (se re-chequea por request)
-=======
     # Intenta usar Ollama si esta disponible (se re-chequea por request).
->>>>>>> Stashed changes
     if check_ollama_availability():
         try:
             result = analyze_with_ollama(code, request.language, request.mode)
             if result:
                 if "error" in result:
                     return AnalyzeResponse(
-<<<<<<< Updated upstream
-                        issues=[Issue(line=0, message="Error en análisis IA", severity="critical")],
-                        explanation=result["error"],
-                        refactored_code=code
-                    )
-                # Valida que los issues sean válidos
-                issues = [Issue(**issue) for issue in result.get("issues", [])]
-=======
                         issues=[Issue(
                             line=0,
                             message="No fue posible contactar al agente de IA.",
@@ -422,7 +356,6 @@ def analyze(request: AnalyzeRequest):
                         severity="info",
                     )]
 
->>>>>>> Stashed changes
                 return AnalyzeResponse(
                     issues=parsed_issues,
                     explanation=result.get("explanation") or "Analisis completado.",
