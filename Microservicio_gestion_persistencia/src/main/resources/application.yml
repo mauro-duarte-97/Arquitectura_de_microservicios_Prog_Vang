@@ -1,0 +1,69 @@
+spring:
+  application:
+    name: gestion
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:auditoria}
+    username: ${POSTGRES_USER:auditoria}
+    password: ${POSTGRES_PASSWORD:auditoria}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    # 'validate' porque Flyway gestiona el esquema; Hibernate solo verifica que coincida.
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: never
+    include-exception: false
+
+# Integracion con microservicio Python
+python:
+  service:
+    base-url: ${PYTHON_SERVICE_URL:http://localhost:5000}
+
+# JWT / CORS de la app
+# IMPORTANTE: en produccion setear JWT_SECRET por variable de entorno con al menos 32 bytes.
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-cambiar-en-prod-este-secreto-tiene-mas-de-32-bytes-ok}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+    issuer: auditoria-codigo-java
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+
+# Spring Boot Actuator (observabilidad)
+# Solo exponemos endpoints "seguros". NO exponer 'env', 'beans', 'mappings' o '*' sin un guard
+# adicional: filtran informacion sensible (variables de entorno, dependencias, rutas, etc).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+  info:
+    env:
+      enabled: true
+
+# Metadatos expuestos por GET /actuator/info
+info:
+  app:
+    name: Microservicio de gestion y persistencia
+    description: Orquestador Java para la plataforma de auditoria de codigo
+    version: "@project.version@"

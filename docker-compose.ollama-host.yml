@@ -1,0 +1,30 @@
+# Override OPCIONAL para correr Ollama en el host (no dockerizado),
+# manteniendo el resto del stack en contenedores.
+#
+# Uso (en este orden):
+#
+#   1) En una terminal: dejar Ollama corriendo en el host
+#         ollama serve
+#      (la primera vez tambien: `ollama pull qwen2.5-coder:7b`)
+#
+#   2) En otra terminal, parado en la raiz del proyecto:
+#         docker compose -f docker-compose.yml -f docker-compose.ollama-host.yml up -d postgres
+#         docker compose -f docker-compose.yml -f docker-compose.ollama-host.yml up -d --no-deps microservicio_inferencia_analisis
+#         docker compose -f docker-compose.yml -f docker-compose.ollama-host.yml up -d microservicio_gestion_persistencia interfaz_usuario
+#
+#   3) Abrir http://localhost:5173
+#
+# El `--no-deps` es clave: evita que Docker intente arrancar el servicio
+# `ollama` dockerizado (que es justo lo que NO queremos en este modo).
+#
+# Para volver al esquema todo-en-Docker simplemente ejecutar Iniciar.bat
+# (que NO incluye este override).
+
+services:
+  microservicio_inferencia_analisis:
+    environment:
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+    extra_hosts:
+      # Permite que el contenedor alcance a host.docker.internal en Linux.
+      # En Windows/Mac Docker Desktop ya lo provee, pero no molesta.
+      - "host.docker.internal:host-gateway"
