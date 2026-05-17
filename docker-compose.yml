@@ -1,10 +1,6 @@
 services:
 
-  # interfaz_usuario:
-  #   build: ./Interfaz_usuario
-  #   ports:
-  #     - "3000:3000"
-
+  # --- Base de datos relacional (Postgres) -------------------------------
   postgres:
     image: postgres:16-alpine
     environment:
@@ -21,6 +17,59 @@ services:
       timeout: 5s
       retries: 10
 
+<<<<<<< Updated upstream
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-auditoria}
+      POSTGRES_USER: ${POSTGRES_USER:-auditoria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-auditoria}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-auditoria} -d ${POSTGRES_DB:-auditoria}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+=======
+  # --- Modelo de IA local (Ollama + qwen2.5-coder:7b pre-pulled) --------
+  ollama:
+    build: ./Ollama_servicio
+    ports:
+      - "11434:11434"
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      # `ollama list` lista los modelos disponibles. Si todavia esta
+      # descargando el modelo en el primer arranque, este check va a
+      # responder OK (el servidor ya esta arriba) pero el modelo no estara
+      # listo. Por eso el microservicio Python tiene fallback amable.
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60   # da hasta 5 minutos para el primer pull
+      start_period: 10s
+
+  # --- Microservicio Python (inferencia / IA) ---------------------------
+  microservicio_inferencia_analisis:
+    build: ./Microservicio_inferencia_analisis
+    ports:
+      - "5000:5000"
+    environment:
+      # Apunta a Ollama dentro de la red de Docker.
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  # --- Microservicio Java (gestion / persistencia / API) ----------------
+>>>>>>> Stashed changes
   microservicio_gestion_persistencia:
     build: ./Microservicio_gestion_persistencia
     ports:
@@ -34,15 +83,25 @@ services:
       PYTHON_SERVICE_URL: http://microservicio_inferencia_analisis:5000
       JWT_SECRET: ${JWT_SECRET:-dev-secret-cambiar-en-prod-este-secreto-tiene-mas-de-32-bytes-ok}
       JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
+<<<<<<< Updated upstream
+=======
+      # El frontend dockerizado tambien aparece como origen permitido.
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+>>>>>>> Stashed changes
     depends_on:
       postgres:
         condition: service_healthy
       microservicio_inferencia_analisis:
         condition: service_started
 
-  microservicio_inferencia_analisis:
-    build: ./Microservicio_inferencia_analisis
+  # --- Frontend (React buildeado, servido por nginx) --------------------
+  interfaz_usuario:
+    build:
+      context: ./Interfaz_usuario
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
     ports:
+<<<<<<< Updated upstream
       - "5000:5000"
     environment:
       # En Docker, "localhost" es el propio contenedor.
@@ -55,3 +114,13 @@ services:
 
 volumes:
   postgres_data:
+=======
+      - "5173:80"
+    depends_on:
+      microservicio_gestion_persistencia:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  ollama_data:
+>>>>>>> Stashed changes

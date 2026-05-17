@@ -27,6 +27,7 @@ el valor por defecto.
 
 ## Cómo correrlo
 
+<<<<<<< Updated upstream
 > **Importante:** `docker compose up` se queda corriendo en primer plano (es
 > un servidor, no devuelve la consola). Hay que usar **dos terminales** o
 > levantar Docker en background con `-d`.
@@ -71,6 +72,47 @@ Para parar el backend más tarde: `docker compose down`.
 El backend tiene CORS habilitado para `http://localhost:5173` y
 `http://localhost:3000` (ver `app.cors.allowed-origins` en `application.properties`
 del microservicio Java).
+=======
+### Para usar la app (no para modificarla)
+
+Doble-click en `Iniciar.bat` en la raíz del repo. Ver el README de la raíz.
+
+### Para desarrollar (hot reload de Vite)
+
+Cuando estás iterando sobre el código, conviene levantar el backend en
+Docker y el frontend con `npm run dev` para tener HMR:
+
+```bash
+# Terminal 1 — backend en Docker (raíz del repo)
+docker compose up -d postgres ollama microservicio_inferencia_analisis microservicio_gestion_persistencia
+
+# Terminal 2 — frontend en modo dev
+cd Interfaz_usuario
+npm install
+npm run dev          # http://localhost:5173 con HMR
+```
+
+> El servicio `interfaz_usuario` de Docker queda **detenido** durante el
+> desarrollo. Si lo dejás corriendo, vas a tener dos cosas escuchando
+> en 5173 (la del contenedor pisa la de Vite o viceversa según orden).
+> Por eso lo excluimos explícitamente del `docker compose up` de arriba.
+
+### Cómo verificar que los servicios están vivos
+
+| Servicio | URL | Qué esperar |
+|---|---|---|
+| Java | http://localhost:8080/test | 200 con texto "Java OK" |
+| Python | http://localhost:5000/test | JSON `{status, ollama_available, ...}` |
+| Swagger | http://localhost:8080/swagger-ui/index.html | Documentación de endpoints |
+| Frontend (Docker) | http://localhost:5173 | Pantalla de login |
+
+> Si `http://localhost:8080/` devuelve **403**, es **normal**. Spring
+> Security exige JWT en cualquier ruta no listada como pública.
+
+CORS está habilitado para `http://localhost:5173` y `http://localhost:3000`
+(ver `app.cors.allowed-origins` en `application.properties` del microservicio
+Java).
+>>>>>>> Stashed changes
 
 ## Endpoints consumidos
 

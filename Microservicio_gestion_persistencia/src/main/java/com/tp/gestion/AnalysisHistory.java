@@ -7,6 +7,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+<<<<<<< Updated upstream
+=======
+import jakarta.persistence.Version;
+>>>>>>> Stashed changes
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -41,6 +45,16 @@ public class AnalysisHistory {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+<<<<<<< Updated upstream
+=======
+    // Lock optimista (concurrencia): Hibernate verifica que esta versi\u00f3n
+    // coincida en cada UPDATE. Si dos transacciones tocan la misma fila en
+    // paralelo, una abortar\u00e1 con OptimisticLockException.
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
+>>>>>>> Stashed changes
     public AnalysisHistory() {
     }
 
@@ -110,4 +124,15 @@ public class AnalysisHistory {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
+<<<<<<< Updated upstream
+=======
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+>>>>>>> Stashed changes
 }
