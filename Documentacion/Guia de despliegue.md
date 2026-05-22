@@ -35,7 +35,8 @@ Tener **Docker Desktop** instalado y corriendo:
 
 ### Arranque del sistema
 
-Doble-click en **`Iniciar.bat`** . Ejecutá **`Aplicar_iconos.bat`** una vez si
+Doble-click en **`Iniciar.bat`** . 
+Ejecutá **`Aplicar_iconos.bat`** una vez si
 querés crear o actualizar `Iniciar.lnk`.
 
 Lo que hace el script:
@@ -56,6 +57,23 @@ Lo que hace el script:
 - Descarga el modelo qwen2.5-coder:7b dentro del contenedor Ollama (~4.7 GB).
 
 Las siguientes veces arranca en 30-60 segundos.
+
+Funcionamiento General del Sistema
+
+El flujo de funcionamiento de la plataforma es el siguiente:
+
+El usuario ingresa código fuente desde la interfaz web.
+El frontend envía la solicitud al backend Java.
+El backend Java valida autenticación y registra la auditoría.
+Java envía el código al microservicio Python.
+El microservicio Python consulta el modelo de IA local.
+El modelo analiza el código y genera una respuesta estructurada.
+El resultado vuelve al backend Java.
+Finalmente, el frontend muestra:
+ -vulnerabilidades detectadas,
+ -sugerencias de mejora,
+ -refactorizaciones,
+ -explicaciones pedagógicas.
 
 ### Detener el sistema
 
@@ -95,58 +113,3 @@ docker compose up -d --build interfaz_usuario
 # Borrar TODO incluida la base de datos (cuidado, perdés usuarios e historial)
 docker compose down -v
 ```
-
-## Estructura del repo
-
-```
-.
-├── Iniciar.bat                          # Arranca todo
-├── Detener.bat                          # Para todo
-├── docker-compose.yml                   # Orquestación
-├── Interfaz_usuario/                    # Frontend React + Vite
-│   ├── Dockerfile                       # Build estático + nginx
-│   ├── nginx.conf
-│   └── src/
-├── Microservicio_gestion_persistencia/  # Backend Java / Spring Boot
-│   ├── Dockerfile
-│   ├── pom.xml
-│   └── src/
-├── Microservicio_inferencia_analisis/   # Backend Python / FastAPI
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── app.py
-├── Ollama_servicio/                     # Imagen de Ollama con modelo pre-pulled
-│   ├── Dockerfile
-│   └── entrypoint.sh
-└── Documentacion/
-    ├── bitacora.txt                     # Historial de decisiones técnicas
-    └── ...
-```
-
-## Stack tecnológico
-
-| Capa | Tecnología | Versión |
-|---|---|---|
-| Frontend | React + Vite + Tailwind + Monaco Editor | React 18, Vite 5 |
-| Backend Java | Spring Boot + Spring Security + JPA + Flyway | Spring Boot 3.2.5, Java 21 |
-| Backend Python | FastAPI + uvicorn | FastAPI 0.104 |
-| Base de datos | PostgreSQL | 16 |
-| IA local | Ollama + qwen2.5-coder:7b | qwen2.5-coder:7b (~4.7 GB) |
-| Auth | JWT (jjwt 0.12.6) | — |
-
-## Modo desarrollo (para iterar sobre el frontend con hot reload)
-
-Si estás modificando el frontend y querés ver los cambios al instante:
-
-```bash
-# Levantar todo MENOS el frontend
-docker compose up -d postgres ollama microservicio_inferencia_analisis microservicio_gestion_persistencia
-
-# Frontend en modo dev (con HMR)
-cd Interfaz_usuario
-npm install
-npm run dev
-```
-
-La UI queda en <http://localhost:5173> igual, pero ahora con recarga al
-guardar archivos. Mirá `Interfaz_usuario/README.md` para más detalles.
